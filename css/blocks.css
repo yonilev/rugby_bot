@@ -1,0 +1,202 @@
+/* css/blocks.css — Command block palette and sequence tray */
+
+/* ── Palette ──────────────────────────────────────────────────────────────── */
+#block-palette {
+  flex-shrink: 0;
+  padding: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+/* ── Sequence tray ────────────────────────────────────────────────────────── */
+#sequence-tray {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+}
+
+.sequence-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 20px;
+  gap: 8px;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-md);
+  margin: 4px;
+}
+
+.sequence-empty-icon {
+  font-size: 2rem;
+  opacity: 0.4;
+}
+
+/* ── Block base styles ────────────────────────────────────────────────────── */
+.block {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--block-text);
+  position: relative;
+  transition: transform 0.1s, box-shadow 0.1s, filter 0.1s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.block:hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.block:active {
+  transform: scale(0.95);
+}
+
+/* Palette blocks (in the left panel) */
+.block.in-palette {
+  padding: 9px 12px;
+  font-size: 0.88rem;
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+
+/* Sequence blocks (in the code tray) */
+.block.in-sequence {
+  border-radius: var(--radius-sm);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+/* Movement blocks */
+.block.movement { background: linear-gradient(135deg, #F5A623, #D4880F); }
+/* Condition blocks */
+.block.condition { background: linear-gradient(135deg, #E63946, #B8202B); }
+/* Loop blocks */
+.block.loop { background: linear-gradient(135deg, #2A9D8F, #1D7268); }
+
+/* Delete button inside sequence block */
+.block-delete {
+  margin-left: auto;
+  font-size: 0.9rem;
+  opacity: 0;
+  background: rgba(0,0,0,0.25);
+  border-radius: 4px;
+  padding: 1px 5px;
+  line-height: 1;
+  transition: opacity 0.1s;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.block.in-sequence:hover .block-delete {
+  opacity: 1;
+}
+
+/* Block icon */
+.block-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+/* Step number badge */
+.block-num {
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg-mid);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+}
+
+/* ── Pop-in animation ─────────────────────────────────────────────────────── */
+@keyframes block-pop {
+  0%   { transform: scale(0.6) translateY(6px); opacity: 0; }
+  60%  { transform: scale(1.08); }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.block.just-added {
+  animation: block-pop 0.25s ease both;
+}
+
+/* ── Nested block container (for REPEAT / IF bodies) ──────────────────────── */
+.nested-block-container {
+  border-left: 3px solid;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 4px 4px 4px 8px;
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(0,0,0,0.15);
+}
+
+.nested-block-container.movement-nest { border-color: var(--block-movement); }
+.nested-block-container.condition-nest { border-color: var(--block-condition); }
+.nested-block-container.loop-nest { border-color: var(--block-loop); }
+
+.nested-slot-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 2px 0 2px 2px;
+}
+
+/* ── Repeat block param input ─────────────────────────────────────────────── */
+.block-param {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 4px;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.9rem;
+  width: 36px;
+  text-align: center;
+  padding: 2px 4px;
+  -moz-appearance: textfield;
+}
+.block-param::-webkit-outer-spin-button,
+.block-param::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+/* ── Drag-over insert indicator ──────────────────────────────────────────── */
+.drop-indicator {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--scotland-gold);
+  margin: 2px 0;
+  animation: dropIndicatorPulse 0.5s ease infinite alternate;
+}
+
+@keyframes dropIndicatorPulse {
+  from { opacity: 0.6; }
+  to   { opacity: 1; }
+}

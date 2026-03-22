@@ -1,0 +1,313 @@
+// js/levels.js — all level data. Pure data, no DOM or Phaser references.
+//
+// Level schema:
+// {
+//   id: string,             unique ID e.g. 'mv-1'
+//   groupId: string,        'movement' | 'conditions' | 'loops'
+//   title: string,
+//   description: string,
+//   grid: { cols, rows },
+//   cells: [{ col, row, type }],
+//     types: 'try-line' | 'obstacle' | 'waypoint' | 'mud' | 'tackle-zone'
+//   finn: { startCol, startRow, startDir },
+//     dir: 'north' | 'east' | 'south' | 'west'
+//   availableCommands: string[],
+//   winCondition: { type, ... }
+//     type 'reach':                    { type:'reach', target:{col,row} }
+//     type 'visit-waypoints-then-reach': { type:'visit-waypoints-then-reach',
+//                                          waypoints:[{col,row}], target:{col,row} }
+//   maxCommands: number | null,
+//   hint: string,
+// }
+
+const GROUPS = [
+  {
+    id: 'movement',
+    title: 'Basic Movement',
+    description: 'Help Finn run, turn, and score his first try!',
+    icon: '🏃',
+    color: '#F5A623',
+    levels: [
+      {
+        id: 'mv-1',
+        groupId: 'movement',
+        title: 'First Steps',
+        description: "Finn just got the ball! Help him run straight to the try line.",
+        grid: { cols: 7, rows: 5 },
+        cells: [
+          { col: 5, row: 2, type: 'try-line' },
+        ],
+        finn: { startCol: 1, startRow: 2, startDir: 'east' },
+        availableCommands: ['move-forward'],
+        winCondition: { type: 'reach', target: { col: 5, row: 2 } },
+        maxCommands: null,
+        hint: 'Add 4 "Move Forward" blocks!',
+      },
+      {
+        id: 'mv-2',
+        groupId: 'movement',
+        title: 'The First Turn',
+        description: "The try line is around the corner. Use turns to reach it!",
+        grid: { cols: 7, rows: 7 },
+        cells: [
+          { col: 5, row: 1, type: 'try-line' },
+        ],
+        finn: { startCol: 1, startRow: 5, startDir: 'north' },
+        availableCommands: ['move-forward', 'turn-left', 'turn-right'],
+        winCondition: { type: 'reach', target: { col: 5, row: 1 } },
+        maxCommands: null,
+        hint: 'Move north 4 times, then turn right and move east 4 times.',
+      },
+      {
+        id: 'mv-3',
+        groupId: 'movement',
+        title: 'Dodge the Defender',
+        description: "There's a defender in the way! Go around them to score.",
+        grid: { cols: 9, rows: 7 },
+        cells: [
+          { col: 4, row: 3, type: 'obstacle' },
+          { col: 7, row: 3, type: 'try-line' },
+        ],
+        finn: { startCol: 1, startRow: 3, startDir: 'east' },
+        availableCommands: ['move-forward', 'turn-left', 'turn-right'],
+        winCondition: { type: 'reach', target: { col: 7, row: 3 } },
+        maxCommands: null,
+        hint: 'Go forward, dodge around the defender, then get back to the try line.',
+      },
+      {
+        id: 'mv-4',
+        groupId: 'movement',
+        title: 'Pick Up the Ball',
+        description: "The ball is loose! Grab it, then race to the try line.",
+        grid: { cols: 7, rows: 5 },
+        cells: [
+          { col: 3, row: 0, type: 'waypoint' },
+          { col: 6, row: 4, type: 'try-line' },
+        ],
+        finn: { startCol: 0, startRow: 2, startDir: 'east' },
+        availableCommands: ['move-forward', 'turn-left', 'turn-right'],
+        winCondition: {
+          type: 'visit-waypoints-then-reach',
+          waypoints: [{ col: 3, row: 0 }],
+          target: { col: 6, row: 4 },
+        },
+        maxCommands: null,
+        hint: 'Go to the ball first, then find a path to the try line.',
+      },
+      {
+        id: 'mv-5',
+        groupId: 'movement',
+        title: 'Champion Run',
+        description: "Two defenders block the direct path. Find the efficient way through!",
+        grid: { cols: 9, rows: 5 },
+        cells: [
+          { col: 3, row: 2, type: 'obstacle' },
+          { col: 6, row: 2, type: 'obstacle' },
+          { col: 8, row: 2, type: 'try-line' },
+        ],
+        finn: { startCol: 0, startRow: 2, startDir: 'east' },
+        availableCommands: ['move-forward', 'turn-left', 'turn-right'],
+        winCondition: { type: 'reach', target: { col: 8, row: 2 } },
+        maxCommands: null,
+        hint: 'Go around both defenders using the top or bottom of the pitch!',
+      },
+    ],
+  },
+
+  {
+    id: 'conditions',
+    title: 'If / Else',
+    description: 'Teach Finn to make smart decisions on the pitch.',
+    icon: '❓',
+    color: '#E63946',
+    levels: [
+      {
+        id: 'cond-1',
+        groupId: 'conditions',
+        title: 'Spot the Tackle',
+        description: "A defender might be ahead! Use IF to dodge them.",
+        grid: { cols: 7, rows: 5 },
+        cells: [
+          { col: 3, row: 2, type: 'obstacle' },
+          { col: 6, row: 2, type: 'try-line' },
+          { col: 6, row: 1, type: 'try-line' },
+        ],
+        finn: { startCol: 1, startRow: 2, startDir: 'east' },
+        availableCommands: ['move-forward', 'turn-left', 'turn-right', 'if-condition'],
+        winCondition: { type: 'reach-any', targets: [{ col: 6, row: 2 }, { col: 6, row: 1 }] },
+        maxCommands: null,
+        hint: 'Use IF obstacle-ahead: THEN turn left. Move forward to get around!',
+      },
+      {
+        id: 'cond-2',
+        groupId: 'conditions',
+        title: 'Left or Right?',
+        description: "One path is blocked — use IF/ELSE to take the right one!",
+        grid: { cols: 9, rows: 7 },
+        cells: [
+          { col: 4, row: 3, type: 'obstacle' },
+          { col: 4, row: 4, type: 'obstacle' },
+          { col: 8, row: 3, type: 'try-line' },
+          { col: 8, row: 2, type: 'try-line' },
+        ],
+        finn: { startCol: 1, startRow: 3, startDir: 'east' },
+        availableCommands: ['move-forward', 'turn-left', 'turn-right', 'if-condition'],
+        winCondition: {
+          type: 'reach-any',
+          targets: [{ col: 8, row: 3 }, { col: 8, row: 2 }],
+        },
+        maxCommands: null,
+        hint: 'Check if the path ahead is clear. If blocked, go around the top!',
+      },
+      {
+        id: 'cond-3',
+        groupId: 'conditions',
+        title: 'Muddy Pitch',
+        description: "It rained last night! A mud patch blocks the way. Use IF to go over the top!",
+        grid: { cols: 7, rows: 5 },
+        cells: [
+          { col: 2, row: 2, type: 'mud' },
+          { col: 5, row: 1, type: 'try-line' },
+        ],
+        finn: { startCol: 0, startRow: 2, startDir: 'east' },
+        availableCommands: ['move-forward', 'turn-left', 'turn-right', 'if-condition'],
+        // Solution: F, if[TL,F,TR], F,F,F,F = reach (5,1)
+        // Finn goes (0,2)→(1,2), if mud at (2,2)=true → TL,F,TR → (1,1)E, F,F,F,F → (5,1)=try
+        winCondition: { type: 'reach', target: { col: 5, row: 1 } },
+        maxCommands: null,
+        hint: 'Move forward once. Then use IF: if mud ahead → Turn Left, Forward, Turn Right. Then keep going!',
+      },
+      {
+        id: 'cond-4',
+        groupId: 'conditions',
+        title: 'Reading the Defence',
+        description: "Multiple defenders — use your new IF/ELSE skills to navigate them all!",
+        grid: { cols: 11, rows: 7 },
+        cells: [
+          { col: 3, row: 3, type: 'obstacle' },
+          { col: 6, row: 2, type: 'obstacle' },
+          { col: 9, row: 3, type: 'try-line' },
+        ],
+        finn: { startCol: 1, startRow: 3, startDir: 'east' },
+        availableCommands: ['move-forward', 'turn-left', 'turn-right', 'if-condition'],
+        winCondition: { type: 'reach', target: { col: 9, row: 3 } },
+        maxCommands: null,
+        hint: 'Use multiple IF blocks to dodge each defender in turn.',
+      },
+    ],
+  },
+
+  {
+    id: 'loops',
+    title: 'Loops & Repeats',
+    description: 'Make Finn run the same play over and over with REPEAT.',
+    icon: '🔁',
+    color: '#2A9D8F',
+    levels: [
+      {
+        id: 'loop-1',
+        groupId: 'loops',
+        title: 'The Sprint',
+        description: "Finn needs to sprint 6 squares. Don't type it 6 times — use REPEAT!",
+        grid: { cols: 9, rows: 5 },
+        cells: [
+          { col: 7, row: 2, type: 'try-line' },
+        ],
+        finn: { startCol: 1, startRow: 2, startDir: 'east' },
+        availableCommands: ['move-forward', 'turn-left', 'turn-right', 'repeat'],
+        winCondition: { type: 'reach', target: { col: 7, row: 2 } },
+        maxCommands: null,
+        hint: 'Use REPEAT 6 times with Move Forward inside!',
+      },
+      {
+        id: 'loop-2',
+        groupId: 'loops',
+        title: 'L-Shaped Run',
+        description: "Use two REPEAT blocks — one to run east, one to run south to the try line!",
+        grid: { cols: 7, rows: 7 },
+        cells: [
+          { col: 4, row: 6, type: 'try-line' },
+        ],
+        finn: { startCol: 0, startRow: 3, startDir: 'east' },
+        availableCommands: ['move-forward', 'turn-left', 'turn-right', 'repeat'],
+        // Solution: repeat(4)[F](→4,3), TR(south), repeat(3)[F](→4,6) = try
+        winCondition: { type: 'reach', target: { col: 4, row: 6 } },
+        maxCommands: null,
+        hint: 'Use REPEAT 4 to go east, then Turn Right, then REPEAT 3 to go south!',
+      },
+      {
+        id: 'loop-3',
+        groupId: 'loops',
+        title: 'Weave Drill',
+        description: "Rugby players practise weaving through cones. Use REPEAT to zig and zag!",
+        grid: { cols: 9, rows: 7 },
+        cells: [
+          { col: 2, row: 2, type: 'obstacle' },
+          { col: 4, row: 4, type: 'obstacle' },
+          { col: 6, row: 2, type: 'obstacle' },
+          { col: 7, row: 5, type: 'try-line' },
+        ],
+        finn: { startCol: 1, startRow: 5, startDir: 'north' },
+        availableCommands: ['move-forward', 'turn-left', 'turn-right', 'repeat'],
+        winCondition: { type: 'reach', target: { col: 7, row: 5 } },
+        maxCommands: null,
+        hint: 'Weave around each cone with REPEAT — find the repeating pattern!',
+      },
+      {
+        id: 'loop-4',
+        groupId: 'loops',
+        title: 'Championship Run',
+        description: "The hardest challenge — loops AND decisions. You're a coding pro!",
+        grid: { cols: 11, rows: 7 },
+        cells: [
+          { col: 3, row: 3, type: 'obstacle' },
+          { col: 6, row: 3, type: 'obstacle' },
+          { col: 9, row: 3, type: 'try-line' },
+          { col: 9, row: 2, type: 'try-line' },
+        ],
+        finn: { startCol: 1, startRow: 3, startDir: 'east' },
+        availableCommands: ['move-forward', 'turn-left', 'turn-right', 'if-condition', 'repeat'],
+        winCondition: {
+          type: 'reach-any',
+          targets: [{ col: 9, row: 3 }, { col: 9, row: 2 }],
+        },
+        maxCommands: null,
+        hint: 'Use REPEAT with IF inside to handle repeated obstacles!',
+      },
+    ],
+  },
+];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function getLevelById(id) {
+  for (const group of GROUPS) {
+    const level = group.levels.find(l => l.id === id);
+    if (level) return level;
+  }
+  return null;
+}
+
+function getGroupById(id) {
+  return GROUPS.find(g => g.id === id) || null;
+}
+
+function getNextLevel(currentLevelId) {
+  for (const group of GROUPS) {
+    const idx = group.levels.findIndex(l => l.id === currentLevelId);
+    if (idx !== -1) {
+      if (idx + 1 < group.levels.length) return group.levels[idx + 1];
+      const groupIdx = GROUPS.indexOf(group);
+      if (groupIdx + 1 < GROUPS.length) return GROUPS[groupIdx + 1].levels[0];
+      return null; // all done
+    }
+  }
+  return null;
+}
+
+function isGroupUnlocked(groupId, completedLevelIds) {
+  const groupIdx = GROUPS.findIndex(g => g.id === groupId);
+  if (groupIdx === 0) return true; // first group always unlocked
+  const prevGroup = GROUPS[groupIdx - 1];
+  return prevGroup.levels.every(l => completedLevelIds.includes(l.id));
+}

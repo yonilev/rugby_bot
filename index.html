@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Finn Russell's Rugby Coding Academy 🏴󠁧󠁢󠁳󠁣󠁴󠁿</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/screens.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/blocks.css">
+  <link rel="stylesheet" href="css/ui.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SCREEN: HOME
+════════════════════════════════════════════════════════════════════════ -->
+<div id="screen-home" class="screen active">
+  <div class="home-hero">
+    <span class="home-flag">🏴󠁧󠁢󠁳󠁣󠁴󠁿</span>
+    <span class="home-finn">🏉</span>
+    <h1 class="home-title">Finn Russell's<br>Rugby Coding Academy</h1>
+    <p class="home-subtitle">Learn to code by guiding Scotland's star fly-half to the try line!</p>
+  </div>
+  <button class="btn-start" id="btn-start">▶ Start Playing</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SCREEN: LEVEL SELECT
+════════════════════════════════════════════════════════════════════════ -->
+<div id="screen-level-select" class="screen">
+  <div class="level-select-header">
+    <span class="level-select-title">🏴󠁧󠁢󠁳󠁣󠁴󠁿 Choose Your Level</span>
+    <div class="session-score-badge" id="ls-score-badge">🏉 0 pts</div>
+  </div>
+  <div class="level-select-body" id="level-select-body">
+    <!-- Populated by screens.js -->
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SCREEN: GAME
+════════════════════════════════════════════════════════════════════════ -->
+<div id="screen-game" class="screen">
+
+  <!-- HUD -->
+  <header id="hud">
+    <button id="hud-back">⬅ Levels</button>
+    <span id="hud-level">–</span>
+    <span id="hud-score">🏉 0 pts</span>
+  </header>
+
+  <!-- Game area -->
+  <div id="game-area">
+
+    <!-- Phaser canvas -->
+    <div id="phaser-container"></div>
+
+    <!-- Coding panel -->
+    <div id="coding-panel">
+
+      <!-- Level description -->
+      <div id="level-description">Select a block to start coding!</div>
+
+      <!-- Block palette -->
+      <div class="panel-section-label">
+        Commands
+        <span id="step-indicator" style="float:right; font-size:0.7rem;"></span>
+      </div>
+      <div id="block-palette">
+        <!-- Populated by blocks.js when level loads -->
+      </div>
+
+      <!-- Sequence tray -->
+      <div class="panel-section-label">Your Code</div>
+      <div id="sequence-tray">
+        <div class="sequence-empty">
+          <div class="sequence-empty-icon">📋</div>
+          <div>Click commands above to build Finn's program</div>
+        </div>
+      </div>
+
+    </div><!-- /coding-panel -->
+  </div><!-- /game-area -->
+
+  <!-- Controls bar -->
+  <footer id="game-controls">
+    <button class="btn-run"   id="btn-run">▶ Run</button>
+    <button class="btn-reset" id="btn-reset">↺ Reset</button>
+    <button class="btn-hint"  id="btn-hint">💡 Hint</button>
+  </footer>
+
+  <!-- In-game message anchor -->
+  <div id="game-message"></div>
+
+</div><!-- /screen-game -->
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     OVERLAY: CONVERSION KICK MODAL
+════════════════════════════════════════════════════════════════════════ -->
+<div id="modal-conversion">
+  <div class="conversion-card">
+    <span class="conversion-flag">🏴󠁧󠁢󠁳󠁣󠁴󠁿</span>
+    <div class="conversion-title">Conversion Kick!</div>
+    <div class="conversion-subtitle">Answer correctly to score 2 more points!</div>
+    <div class="conversion-question" id="conversion-question">4 + 3 = ?</div>
+    <div class="conversion-input-row">
+      <input type="number" id="conversion-answer" placeholder="?" autocomplete="off">
+      <button id="btn-conversion-submit">Kick! ⚽</button>
+    </div>
+    <div class="conversion-result"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     OVERLAY: HINT MODAL
+════════════════════════════════════════════════════════════════════════ -->
+<div id="modal-hint">
+  <div class="hint-card">
+    <span class="hint-icon">💡</span>
+    <div class="hint-title">Coach's Tip</div>
+    <div class="hint-text" id="hint-text">Try moving forward!</div>
+    <button id="btn-hint-close">Got it!</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TOAST CONTAINER (appended by score.js)
+════════════════════════════════════════════════════════════════════════ -->
+<div id="toast-container"></div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SCRIPTS — loaded in dependency order
+     Plain <script> tags (not modules) so file:// works without CORS issues
+════════════════════════════════════════════════════════════════════════ -->
+
+<!-- Phaser 3 (CDN — requires internet) -->
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.88.1/dist/phaser.min.js"></script>
+
+<!-- Foundation -->
+<script src="js/utils.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/levels.js"></script>
+<script src="js/state.js"></script>
+
+<!-- Phaser scenes (must be defined before Phaser.Game is instantiated) -->
+<script src="js/scenes/BootScene.js"></script>
+<script src="js/scenes/GameScene.js"></script>
+<script src="js/scenes/CelebrationScene.js"></script>
+
+<!-- UI modules -->
+<script src="js/blocks.js"></script>
+<script src="js/executor.js"></script>
+<script src="js/score.js"></script>
+<script src="js/screens.js"></script>
+<script src="js/main.js"></script>
+
+</body>
+</html>

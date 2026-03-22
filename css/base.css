@@ -1,0 +1,72 @@
+/* css/base.css — CSS variables, reset, global typography */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Scotland palette */
+  --scotland-navy:    #003F7F;
+  --scotland-blue:    #0065BD;
+  --scotland-gold:    #C8962E;
+  --scotland-gold-lt: #F0BB50;
+  --scotland-white:   #F5F5F5;
+
+  /* Pitch */
+  --pitch-green:      #2D6A2F;
+  --pitch-green-alt:  #348038;
+  --pitch-line:       rgba(255,255,255,0.25);
+  --pitch-line-bright:rgba(255,255,255,0.7);
+
+  /* UI neutrals */
+  --bg-dark:   #0A1628;
+  --bg-mid:    #112240;
+  --bg-panel:  #16213E;
+  --border:    rgba(200, 150, 46, 0.3);
+  --text-main: #E8EAF0;
+  --text-dim:  #8A95A8;
+
+  /* Block colours */
+  --block-movement:  #F5A623;
+  --block-condition: #E63946;
+  --block-loop:      #2A9D8F;
+  --block-text:      #FFFFFF;
+
+  /* Radii & spacing */
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  16px;
+  --gap:        12px;
+
+  /* Fonts */
+  --font-main:  'Segoe UI', system-ui, Arial, sans-serif;
+  --font-mono:  'Courier New', monospace;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-main);
+  background: var(--bg-dark);
+  color: var(--text-main);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+button {
+  cursor: pointer;
+  font-family: var(--font-main);
+  border: none;
+  border-radius: var(--radius-md);
+}
+
+input {
+  font-family: var(--font-main);
+}
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-mid); }
+::-webkit-scrollbar-thumb { background: var(--scotland-gold); border-radius: 3px; }
