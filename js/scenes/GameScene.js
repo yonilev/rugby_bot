@@ -13,7 +13,6 @@ class GameScene extends Phaser.Scene {
     this._gridGfx    = null;
     this._postGfx    = null;   // goal posts graphics (separate layer for flashing)
     this._crowdGfx   = null;   // crowd stands around the pitch
-    this._playersGfx = null;   // decorative players in in-goal zones
 
     // Public API for executor.js and screens.js
     this.api = {
@@ -32,7 +31,6 @@ class GameScene extends Phaser.Scene {
 
   create() {
     this._gridGfx    = this.add.graphics();
-    this._playersGfx = this.add.graphics();          // depth 0, behind cells added later
     this._crowdGfx   = this.add.graphics().setDepth(1);
     this._postGfx    = this.add.graphics().setDepth(2);
     window.RUGBY.gameScene = this;
@@ -68,7 +66,6 @@ class GameScene extends Phaser.Scene {
 
     this._drawPitch(cols, rows);
     this._drawCrowd(cols, rows);
-    this._drawPitchPlayers(cols, rows);
     this._drawCells(def.cells);
     this._placeFinn(def.finn.startCol, def.finn.startRow, def.finn.startDir);
   }
@@ -204,6 +201,19 @@ class GameScene extends Phaser.Scene {
         const img = this.add.image(px + cs/2, py + cs/2, 'obstacle');
         img.setDisplaySize(cs * 0.75, cs * 0.75);
         this._cellObjs[`${col},${row}`] = img;
+      } else if (type === 'opponent-player') {
+        const img = this.add.image(px + cs/2, py + cs/2, 'opponent-player');
+        img.setDisplaySize(cs * 0.82, cs * 0.82);
+        this._cellObjs[`${col},${row}`] = img;
+        // Subtle idle sway
+        this.tweens.add({
+          targets: img,
+          angle: 4,
+          duration: 700 + Math.random() * 300,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.inOut',
+        });
       } else if (type === 'waypoint') {
         const img = this.add.image(px + cs/2, py + cs/2, 'waypoint');
         img.setDisplaySize(cs * 0.8, cs * 0.8);
@@ -896,73 +906,6 @@ class GameScene extends Phaser.Scene {
         cg.fillRect(ox + pw + 2 - HEAD_R, fy - HEAD_R, HEAD_R * 2, HEAD_R);
       }
     }
-  }
-
-  // ── Decorative players in in-goal zones (depth 0, behind gameplay cells) ──
-  _drawPitchPlayers(cols, rows) {
-    const pg = this._playersGfx;
-    pg.clear();
-
-    const cs = this._cellSize;
-    const s  = cs / 90;  // scale relative to reference cell size
-
-    const drawPlayer = (col, row, jerseyColor) => {
-      const { px, py } = this._cellPixel(col, row);
-      const cx = px + cs * 0.5;
-      const cy = py + cs * 0.52;
-
-      const h  = Math.max(3, Math.round(5 * s));
-      const bw = Math.max(5, Math.round(9 * s));
-      const bh = Math.max(5, Math.round(11 * s));
-      const ll = Math.max(4, Math.round(10 * s));
-      const lw = Math.max(2, Math.round(3 * s));
-
-      // Shadow
-      pg.fillStyle(0x000000, 0.15);
-      pg.fillEllipse(cx, cy + bh + ll + 1, bw * 2.5, Math.max(3, 5 * s));
-
-      // Legs
-      pg.lineStyle(lw, 0x003F7F, 1);
-      pg.beginPath(); pg.moveTo(cx - 2 * s, cy + bh); pg.lineTo(cx - 3 * s, cy + bh + ll); pg.strokePath();
-      pg.beginPath(); pg.moveTo(cx + 2 * s, cy + bh); pg.lineTo(cx + 3 * s, cy + bh + ll); pg.strokePath();
-
-      // Jersey
-      pg.fillStyle(jerseyColor, 1);
-      pg.fillRoundedRect(cx - bw, cy - bh, bw * 2, bh * 2, Math.max(2, 2 * s));
-
-      // Horizontal stripe on jersey
-      pg.fillStyle(0xFFFFFF, 0.25);
-      pg.fillRect(cx - bw, cy - 2 * s, bw * 2, Math.max(2, 4 * s));
-
-      // Arms
-      pg.lineStyle(Math.max(2, Math.round(4 * s)), jerseyColor, 1);
-      pg.beginPath(); pg.moveTo(cx - bw, cy - bh * 0.3); pg.lineTo(cx - bw * 1.8, cy + bh * 0.3); pg.strokePath();
-      pg.beginPath(); pg.moveTo(cx + bw, cy - bh * 0.3); pg.lineTo(cx + bw * 1.8, cy + bh * 0.3); pg.strokePath();
-
-      // Hands
-      pg.fillStyle(0xF0C080, 1);
-      pg.fillCircle(cx - bw * 1.8, cy + bh * 0.3, Math.max(2, 2.5 * s));
-      pg.fillCircle(cx + bw * 1.8, cy + bh * 0.3, Math.max(2, 2.5 * s));
-
-      // Head
-      pg.fillStyle(0xF0C080, 1);
-      pg.fillCircle(cx, cy - bh - h, h);
-
-      // Hair
-      const HAIR_COLS = [0x222222, 0x663300, 0xAA8800];
-      pg.fillStyle(HAIR_COLS[col % HAIR_COLS.length], 1);
-      pg.fillRect(cx - h, cy - bh - h * 2, h * 2, h);
-    };
-
-    const midRow = Math.floor(rows / 2);
-
-    // Opposition (red) in left in-goal column
-    drawPlayer(0, Math.max(0, midRow - 1), 0xCC2222);
-    if (rows >= 4) drawPlayer(0, Math.min(rows - 1, midRow + 1), 0xAA1111);
-
-    // Scotland teammates (navy / bright blue) in right in-goal column
-    drawPlayer(cols - 1, Math.max(0, midRow - 1), 0x003F7F);
-    if (rows >= 4) drawPlayer(cols - 1, Math.min(rows - 1, midRow + 1), 0x0065BD);
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

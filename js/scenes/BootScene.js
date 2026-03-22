@@ -323,6 +323,11 @@ class BootScene extends Phaser.Scene {
     this._drawObstacle(obsCanvas.getContext('2d'), SIZE);
     this.textures.addCanvas('obstacle', obsCanvas);
 
+    const oppCanvas = document.createElement('canvas');
+    oppCanvas.width = oppCanvas.height = SIZE;
+    this._drawOpponentPlayer(oppCanvas.getContext('2d'), SIZE);
+    this.textures.addCanvas('opponent-player', oppCanvas);
+
     const wpCanvas = document.createElement('canvas');
     wpCanvas.width = wpCanvas.height = SIZE;
     this._drawWaypoint(wpCanvas.getContext('2d'), SIZE);
@@ -332,6 +337,84 @@ class BootScene extends Phaser.Scene {
     mudCanvas.width = mudCanvas.height = SIZE;
     this._drawMud(mudCanvas.getContext('2d'), SIZE);
     this.textures.addCanvas('mud', mudCanvas);
+  }
+
+  _drawOpponentPlayer(ctx, size) {
+    const cx = size / 2, cy = size / 2 + 2;
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath();
+    ctx.ellipse(cx, size - 4, 20, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Legs
+    ctx.strokeStyle = '#1A1A1A';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx - 5, cy + 8); ctx.lineTo(cx - 8, cy + 18); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 5, cy + 8); ctx.lineTo(cx + 8, cy + 18); ctx.stroke();
+
+    // Boots
+    ctx.fillStyle = '#1A1A1A';
+    ctx.beginPath(); ctx.ellipse(cx - 7, cy + 21, 6, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + 7, cy + 21, 6, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+
+    // Shorts (white)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath(); ctx.roundRect(cx - 11, cy + 4, 22, 10, 3); ctx.fill();
+
+    // Jersey (dark red / maroon)
+    ctx.fillStyle = '#8B0000';
+    ctx.beginPath(); ctx.roundRect(cx - 13, cy - 10, 26, 20, 4); ctx.fill();
+
+    // White chest stripe
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    ctx.fillRect(cx - 13, cy - 2, 26, 5);
+
+    // Jersey number
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 9px "Segoe UI", Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('7', cx, cy + 2);
+
+    // Arms spread wide (defensive stance)
+    ctx.strokeStyle = '#8B0000';
+    ctx.lineWidth = 7;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx - 13, cy - 4); ctx.lineTo(cx - 25, cy + 5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 13, cy - 4); ctx.lineTo(cx + 25, cy + 5); ctx.stroke();
+
+    // Hands
+    ctx.fillStyle = '#F4C080';
+    ctx.beginPath(); ctx.arc(cx - 25, cy + 5, 4.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 25, cy + 5, 4.5, 0, Math.PI * 2); ctx.fill();
+
+    // Head
+    ctx.fillStyle = '#F4C080';
+    ctx.beginPath(); ctx.arc(cx, cy - 18, 11, 0, Math.PI * 2); ctx.fill();
+
+    // Hair (dark)
+    ctx.fillStyle = '#222222';
+    ctx.beginPath(); ctx.arc(cx, cy - 24, 10, Math.PI, 2 * Math.PI); ctx.fill();
+    ctx.fillRect(cx - 11, cy - 30, 22, 6);
+
+    // Eyes (stern)
+    ctx.fillStyle = '#222222';
+    ctx.beginPath(); ctx.arc(cx - 4, cy - 18, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 4, cy - 18, 2, 0, Math.PI * 2); ctx.fill();
+
+    // Frown
+    ctx.strokeStyle = '#8B3A1A';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(cx, cy - 13, 3, Math.PI * 0.1, Math.PI * 0.9, true); ctx.stroke();
+
+    // Warning border
+    ctx.strokeStyle = 'rgba(200,30,30,0.7)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.roundRect(2, 2, size - 4, size - 4, 8); ctx.stroke();
   }
 
   _drawObstacle(ctx, size) {

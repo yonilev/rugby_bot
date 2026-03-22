@@ -162,8 +162,8 @@ const Executor = (() => {
 
     // Check obstacles and mud (mud blocks movement — use if-condition to detect and avoid it)
     const cell = _getCellAt(newPos.col, newPos.row);
-    if (cell && cell.type === 'obstacle') {
-      _handleError('Blocked by a defender! 🏉');
+    if (cell && (cell.type === 'obstacle' || cell.type === 'opponent-player')) {
+      _handleError('Tackled by an opponent! 🏉');
       return;
     }
     if (cell && cell.type === 'mud') {
@@ -289,7 +289,7 @@ const Executor = (() => {
 
     const cell = _getCellAt(ahead.col, ahead.row);
     if (!cell) return false;
-    return cell.type === 'obstacle' || cell.type === 'mud';
+    return cell.type === 'obstacle' || cell.type === 'opponent-player' || cell.type === 'mud';
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
