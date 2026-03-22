@@ -39,18 +39,6 @@
   flex: 1;
 }
 
-#hud-score {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(200,150,46,0.12);
-  border: 1px solid var(--scotland-gold);
-  border-radius: 20px;
-  padding: 4px 14px;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--scotland-gold);
-}
 
 /* Main area: canvas + coding panel */
 #game-area {

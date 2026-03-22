@@ -94,9 +94,6 @@ const ScoreManager = (() => {
   function updateHUD() {
     const { totalScore, tries, conversions } = GameState.session;
 
-    const scoreEl = document.getElementById('hud-score');
-    if (scoreEl) scoreEl.textContent = `🏉 ${totalScore} pts`;
-
     const badge = document.getElementById('ls-score-badge');
     if (badge) badge.textContent = `🏉 ${totalScore} pts`;
 
