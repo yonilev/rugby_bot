@@ -422,73 +422,91 @@ class GameScene extends Phaser.Scene {
   }
 
   // ── Goal kick animation ───────────────────────────────────────────────────
-  // Animates a rugby ball arcing from Finn toward the nearest goal posts
+  // Shows Finn in kick pose, ball launches from foot and arcs to goal posts
   _doGoalKick(onDone) {
     if (!this._finnSprite || !this._levelDef) { if (onDone) onDone(); return; }
 
-    const cs    = this._cellSize;
-    const ox    = this._offsetX;
-    const oy    = this._offsetY;
-    const cols  = this._levelDef.grid.cols;
-    const rows  = this._levelDef.grid.rows;
+    const cs     = this._cellSize;
+    const ox     = this._offsetX;
+    const oy     = this._offsetY;
+    const cols   = this._levelDef.grid.cols;
+    const rows   = this._levelDef.grid.rows;
     const pitchH = rows * cs;
     const pitchW = cols * cs;
 
-    // Kick toward the right-hand (east) goal posts
+    // Goal posts are always to the east
     const postX = ox + pitchW;
-    const postY = oy + pitchH / 2 - cs * 0.05; // crossbar height (matches _drawGoalPosts)
+    const postY = oy + pitchH / 2 - cs * 0.05;
 
-    const startX = this._finnSprite.x;
-    const startY = this._finnSprite.y;
+    // Face east and stop walking
+    this._finnSprite.stop();
+    this._finnSprite.setAngle(0);
+    this._finnSprite.setFlipX(false);
 
-    // Create a rugby ball graphic
-    const ball = this.add.graphics();
-    ball.setDepth(20);
-    this._drawBallGraphic(ball);
-    ball.setPosition(startX, startY);
+    const baseScale = this._finnSprite.scaleX;
 
-    // Step flash on Finn — kick pose
+    // Wind-up: brief body squish before the kick
     this.tweens.add({
       targets: this._finnSprite,
-      y: this._finnSprite.y - 8,
-      duration: 120,
+      scaleX: baseScale * 0.88,
+      scaleY: baseScale * 1.12,
+      duration: 200,
       yoyo: true,
       ease: 'Power2',
-    });
-
-    // Animate ball along parabolic arc toward posts
-    const duration = 1100;
-    const startTime = { t: 0 };
-
-    this.tweens.add({
-      targets: startTime,
-      t: 1,
-      duration,
-      ease: 'Linear',
-      onUpdate: (tween) => {
-        const p = tween.progress;
-        const x = startX + (postX - startX) * p;
-        const y = startY + (postY - startY) * p - Math.sin(p * Math.PI) * (pitchH * 0.55);
-        ball.setPosition(x, y);
-        ball.setAngle(p * 720);
-        ball.setScale(1 + p * 0.3); // grow as it arcs forward then shrinks
-      },
       onComplete: () => {
-        // Flash goal posts yellow (success)
-        this._flashGoalPosts();
-        AudioEngine.playWhistle();
+        this._finnSprite.setScale(baseScale);
 
-        this.tweens.add({
-          targets: ball,
-          alpha: 0,
-          scaleX: 2,
-          scaleY: 2,
-          duration: 350,
-          ease: 'Power2',
-          onComplete: () => {
-            ball.destroy();
-            if (onDone) onDone();
-          },
+        // Switch to kick frame (frame 4: leg raised, arms spread)
+        this._finnSprite.setFrame(4);
+
+        // Ball appears at the kicking foot
+        // Boot toe offset within sprite frame: x≈+32, y≈+22 from sprite centre
+        const footX = this._finnSprite.x + 32 * baseScale;
+        const footY = this._finnSprite.y + 22 * baseScale;
+
+        const ball = this.add.graphics();
+        ball.setDepth(20);
+        this._drawBallGraphic(ball);
+        ball.setPosition(footX, footY);
+        ball.setScale(2); // large at contact point
+
+        AudioEngine.playKick();
+
+        // Brief pause so player sees the kick pose, then launch
+        this.time.delayedCall(180, () => {
+          const startTime = { t: 0 };
+          this.tweens.add({
+            targets: startTime,
+            t: 1,
+            duration: 1100,
+            ease: 'Linear',
+            onUpdate: (tween) => {
+              const p = tween.progress;
+              const x = footX + (postX - footX) * p;
+              const y = footY + (postY - footY) * p - Math.sin(p * Math.PI) * (pitchH * 0.55);
+              ball.setPosition(x, y);
+              ball.setAngle(p * 720);
+              ball.setScale(Math.max(0.5, 2 - p * 1.5)); // shrinks as it travels away
+            },
+            onComplete: () => {
+              this._flashGoalPosts();
+              AudioEngine.playWhistle();
+              this._finnSprite.setFrame(0); // back to neutral stance
+
+              this.tweens.add({
+                targets: ball,
+                alpha: 0,
+                scaleX: 2,
+                scaleY: 2,
+                duration: 350,
+                ease: 'Power2',
+                onComplete: () => {
+                  ball.destroy();
+                  if (onDone) onDone();
+                },
+              });
+            },
+          });
         });
       },
     });

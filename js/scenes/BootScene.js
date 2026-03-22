@@ -20,7 +20,7 @@ class BootScene extends Phaser.Scene {
   _createFinnTexture() {
     const FRAME_W = 64;
     const FRAME_H = 80;
-    const FRAMES  = 4;
+    const FRAMES  = 5;  // 0-3 running, 4 = kick pose
 
     const canvas = document.createElement('canvas');
     canvas.width  = FRAME_W * FRAMES;
@@ -38,10 +38,15 @@ class BootScene extends Phaser.Scene {
     }
   }
 
-  // Side-view east-facing character. frame 0=neutral, 1=stride-A, 2=neutral, 3=stride-B
+  // Side-view east-facing character. frame 0=neutral, 1=stride-A, 2=neutral, 3=stride-B, 4=kick
   _drawFinnFrame(ctx, ox, oy, w, h, frame) {
     // Centre-x slightly left to leave room for ball on the right
     const cx = ox + w * 0.42;
+
+    if (frame === 4) {
+      this._drawFinnKickFrame(ctx, ox, oy, cx);
+      return;
+    }
 
     // Running animation offsets
     const legStride  = frame === 1 ? 10 : frame === 3 ? -10 : 0;
@@ -203,6 +208,110 @@ class BootScene extends Phaser.Scene {
     ctx.beginPath();
     ctx.roundRect(cx - 5, bodyY, 10, 5, 3);
     ctx.fill();
+  }
+
+  // Kick pose: planted leg, kicking leg raised forward, arms spread for balance
+  _drawFinnKickFrame(ctx, ox, oy, cx) {
+    const legsTopY = oy + 48;
+    const bodyY    = oy + 28;
+    const headX    = cx + 4;
+    const headY    = oy + 14;
+
+    // ── Planted leg ─────────────────────────────────────────────────────────
+    ctx.strokeStyle = '#003F7F';
+    ctx.lineWidth   = 7;
+    ctx.lineCap     = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx - 4, legsTopY);
+    ctx.lineTo(cx - 4, legsTopY + 18);
+    ctx.stroke();
+    // Planted sock
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath(); ctx.arc(cx - 4, legsTopY + 18, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#003F7F';
+    ctx.fillRect(cx - 8, legsTopY + 16, 8, 3);
+    // Planted boot
+    ctx.fillStyle = '#1A1A1A';
+    ctx.beginPath();
+    ctx.ellipse(cx + 1, legsTopY + 23, 7, 4, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // ── Kicking upper leg (thigh, drawn behind body) ─────────────────────────
+    ctx.strokeStyle = '#003F7F';
+    ctx.lineWidth   = 7;
+    ctx.beginPath();
+    ctx.moveTo(cx + 4, legsTopY);
+    ctx.lineTo(cx + 14, legsTopY + 5);
+    ctx.stroke();
+
+    // ── Shorts ──────────────────────────────────────────────────────────────
+    ctx.fillStyle = '#003F7F';
+    ctx.beginPath();
+    ctx.roundRect(cx - 12, legsTopY - 4, 24, 11, 3);
+    ctx.fill();
+
+    // ── Jersey body ──────────────────────────────────────────────────────────
+    ctx.fillStyle = '#0065BD';
+    ctx.beginPath();
+    ctx.roundRect(cx - 12, bodyY, 24, 22, 4);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.20)';
+    ctx.fillRect(cx - 12, bodyY + 8, 24, 4);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 9px "Segoe UI", Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('10', cx, bodyY + 15);
+
+    // ── Arms spread wide for balance ─────────────────────────────────────────
+    ctx.strokeStyle = '#0065BD';
+    ctx.lineWidth   = 6;
+    ctx.lineCap     = 'round';
+    ctx.beginPath(); ctx.moveTo(cx - 10, bodyY + 5); ctx.lineTo(cx - 24, bodyY + 10); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 10, bodyY + 5); ctx.lineTo(cx + 24, bodyY + 10); ctx.stroke();
+    ctx.fillStyle = '#F4C080';
+    ctx.beginPath();
+    ctx.arc(cx - 24, bodyY + 10, 4, 0, Math.PI * 2);
+    ctx.arc(cx + 24, bodyY + 10, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // ── Kicking lower leg + boot (in front of body) ──────────────────────────
+    ctx.strokeStyle = '#003F7F';
+    ctx.lineWidth   = 7;
+    ctx.beginPath();
+    ctx.moveTo(cx + 14, legsTopY + 5);
+    ctx.lineTo(cx + 24, legsTopY + 12);
+    ctx.stroke();
+    // Kicking sock
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath(); ctx.arc(cx + 24, legsTopY + 12, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#003F7F';
+    ctx.fillRect(cx + 20, legsTopY + 10, 8, 3);
+    // Kicking boot (toe points east-forward)
+    ctx.fillStyle = '#1A1A1A';
+    ctx.beginPath();
+    ctx.ellipse(cx + 30, legsTopY + 14, 7, 4, -0.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // ── Head ─────────────────────────────────────────────────────────────────
+    ctx.fillStyle = '#F4C080';
+    ctx.beginPath(); ctx.arc(headX, headY, 11, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#8B1A1A';
+    ctx.beginPath(); ctx.arc(headX - 2, headY - 4, 10, Math.PI, 2 * Math.PI); ctx.fill();
+    ctx.fillRect(headX - 11, headY - 8, 20, 5);
+    ctx.fillStyle = '#1A1A2E';
+    ctx.beginPath(); ctx.arc(headX + 6, headY, 2.2, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#5A1A1A';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(headX + 3, headY - 4); ctx.lineTo(headX + 9, headY - 3); ctx.stroke();
+    ctx.fillStyle = '#D4904A';
+    ctx.beginPath(); ctx.arc(headX + 10, headY + 1, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#8B3A1A';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(headX + 5, headY + 4, 3.5, 0.2, Math.PI - 0.2); ctx.stroke();
+    // White collar
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath(); ctx.roundRect(cx - 5, bodyY, 10, 5, 3); ctx.fill();
   }
 
   // ── Cell textures (obstacles, waypoints, mud) ─────────────────────────────
