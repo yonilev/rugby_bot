@@ -503,6 +503,7 @@ class GameScene extends Phaser.Scene {
                 this._flashGoalPosts();
                 AudioEngine.playWhistle();
               }
+              this._crowdReact(isCorrect);
               this._finnSprite.setFrame(0); // back to neutral stance
 
               this.tweens.add({
@@ -565,18 +566,8 @@ class GameScene extends Phaser.Scene {
     overlay.setAlpha(0);
     this.tweens.add({ targets: overlay, alpha: 0.5, duration: 180 });
 
-    // Crowd cheer — flash the stands
-    if (this._crowdGfx) {
-      this.tweens.add({
-        targets: this._crowdGfx,
-        alpha: 0.3,
-        duration: 90,
-        yoyo: true,
-        repeat: 5,
-        ease: 'Sine.inOut',
-        onComplete: () => this._crowdGfx.setAlpha(1),
-      });
-    }
+    // Crowd cheer
+    this._crowdReact(true);
 
     const CONF_COLORS = [0xFFD700, 0x0065BD, 0xFFFFFF, 0xFF5252, 0x4CAF50, 0xFF69B4, 0xC8962E, 0x00BFFF];
 
@@ -763,6 +754,50 @@ class GameScene extends Phaser.Scene {
         },
       });
     });
+  }
+
+  // ── Crowd reaction overlay ────────────────────────────────────────────────
+  // isGoal=true → staggered gold wave on each stand; false → brief dark groan
+  _crowdReact(isGoal) {
+    if (!this._levelDef) return;
+    const cs = this._cellSize;
+    const ox = this._offsetX, oy = this._offsetY;
+    const pw = this._levelDef.grid.cols * cs;
+    const ph = this._levelDef.grid.rows * cs;
+    const BH = 17, SW = 17; // BAND_H / SIDE_W — must match _drawCrowd constants
+    const rects = [
+      [ox,      oy - BH - 1, pw, BH + 1], // top stand
+      [ox,      oy + ph,     pw, BH + 1], // bottom stand
+      [ox - SW, oy,          SW, ph     ], // left stand
+      [ox + pw, oy,          SW, ph     ], // right stand
+    ];
+
+    if (isGoal) {
+      rects.forEach((r, i) => {
+        const ov = this.add.graphics().setDepth(2);
+        ov.fillStyle(0xFFD700, 1);
+        ov.fillRect(r[0], r[1], r[2], r[3]);
+        ov.setAlpha(0);
+        this.time.delayedCall(i * 55, () => {
+          this.tweens.add({
+            targets: ov, alpha: 0.65,
+            duration: 75, yoyo: true, repeat: 3,
+            ease: 'Power2',
+            onComplete: () => ov.destroy(),
+          });
+        });
+      });
+    } else {
+      const ov = this.add.graphics().setDepth(2);
+      ov.fillStyle(0x000000, 1);
+      rects.forEach(r => ov.fillRect(r[0], r[1], r[2], r[3]));
+      ov.setAlpha(0);
+      this.tweens.add({
+        targets: ov, alpha: 0.55,
+        duration: 280, yoyo: true, ease: 'Power2',
+        onComplete: () => ov.destroy(),
+      });
+    }
   }
 
   // ── Crowd stands around the pitch ─────────────────────────────────────────
