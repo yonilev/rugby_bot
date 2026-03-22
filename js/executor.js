@@ -105,6 +105,40 @@ const Executor = (() => {
         break;
       }
 
+      case 'turn-around': {
+        const { finn } = GameState.current;
+        const newDir = Utils.rotateDir(Utils.rotateDir(finn.dir, 'right'), 'right');
+        GameState.mutations.updateFinn(finn.col, finn.row, newDir);
+        if (window.RUGBY.gameScene) {
+          window.RUGBY.gameScene.api.turnFinn(newDir, () => {
+            if (_stopped) return;
+            onDone();
+          });
+        } else {
+          onDone();
+        }
+        break;
+      }
+
+      case 'sprint':
+        _doMove('forward', () => {
+          if (_stopped) return;
+          _doMove('forward', onDone);
+        });
+        break;
+
+      case 'while-clear': {
+        let safetyCounter = 0;
+        function doWhile() {
+          if (_stopped) return;
+          if (safetyCounter++ >= 20) { onDone(); return; }
+          if (_evaluateCondition()) { onDone(); return; } // obstacle/edge ahead → stop
+          executeNodes(node.body || [], doWhile);
+        }
+        doWhile();
+        break;
+      }
+
       default:
         onDone();
     }

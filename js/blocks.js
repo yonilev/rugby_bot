@@ -32,6 +32,19 @@ const BlockSystem = (() => {
       hasSlots: true, slots: ['body'],
       description: 'Repeat the commands inside a number of times',
     },
+    'turn-around': {
+      label: 'Turn Around', icon: '🔄', category: 'movement',
+      description: 'Turn Finn 180° to face the other way',
+    },
+    'sprint': {
+      label: 'Sprint!', icon: '💨', category: 'movement',
+      description: 'Burst forward 2 squares in one move',
+    },
+    'while-clear': {
+      label: 'While Clear →', icon: '♾️', category: 'loop',
+      hasSlots: true, slots: ['body'],
+      description: 'While the path ahead is clear, keep repeating the commands inside',
+    },
   };
 
   const CATEGORY_CLASS = {
