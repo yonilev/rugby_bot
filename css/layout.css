@@ -18,6 +18,8 @@
   flex-shrink: 0;
   z-index: 5;
   flex-wrap: nowrap;
+  justify-content: space-between;
+  position: relative;
 }
 
 #hud-back {
@@ -36,7 +38,6 @@
   font-size: 1rem;
   font-weight: 700;
   color: var(--text-main);
-  flex: 1;
 }
 
 
