@@ -10,18 +10,10 @@ const ScoreManager = (() => {
     GameState.mutations.recordTry();
     updateHUD();
 
-    // Launch celebration scene, then goal kick, then conversion modal
-    if (window.RUGBY.phaserGame) {
-      window.RUGBY.phaserGame.scene.launch('CelebrationScene', {
-        points: 5,
-        onDone: () => {
-          // Goal kick animation happens inside the GameScene after celebration
-          if (window.RUGBY.gameScene) {
-            window.RUGBY.gameScene.api.doGoalKick(() => _showConversionModal());
-          } else {
-            _showConversionModal();
-          }
-        },
+    // Celebrate directly inside the running GameScene (no scene.launch needed)
+    if (window.RUGBY.gameScene) {
+      window.RUGBY.gameScene.api.celebrate(5, () => {
+        window.RUGBY.gameScene.api.doGoalKick(() => _showConversionModal());
       });
     } else {
       setTimeout(() => _showConversionModal(), 800);
