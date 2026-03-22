@@ -12,6 +12,8 @@ class GameScene extends Phaser.Scene {
     this._waypointGlow = {};
     this._gridGfx    = null;
     this._postGfx    = null;   // goal posts graphics (separate layer for flashing)
+    this._crowdGfx   = null;   // crowd stands around the pitch
+    this._playersGfx = null;   // decorative players in in-goal zones
 
     // Public API for executor.js and screens.js
     this.api = {
@@ -29,9 +31,10 @@ class GameScene extends Phaser.Scene {
   }
 
   create() {
-    this._gridGfx = this.add.graphics();
-    this._postGfx = this.add.graphics();
-    this._postGfx.setDepth(2);
+    this._gridGfx    = this.add.graphics();
+    this._playersGfx = this.add.graphics();          // depth 0, behind cells added later
+    this._crowdGfx   = this.add.graphics().setDepth(1);
+    this._postGfx    = this.add.graphics().setDepth(2);
     window.RUGBY.gameScene = this;
 
     if (window.RUGBY.pendingLevel) {
@@ -64,6 +67,8 @@ class GameScene extends Phaser.Scene {
     this._offsetY = Math.floor((H - gridH) / 2);
 
     this._drawPitch(cols, rows);
+    this._drawCrowd(cols, rows);
+    this._drawPitchPlayers(cols, rows);
     this._drawCells(def.cells);
     this._placeFinn(def.finn.startCol, def.finn.startRow, def.finn.startDir);
   }
@@ -553,6 +558,19 @@ class GameScene extends Phaser.Scene {
     overlay.setAlpha(0);
     this.tweens.add({ targets: overlay, alpha: 0.5, duration: 180 });
 
+    // Crowd cheer — flash the stands
+    if (this._crowdGfx) {
+      this.tweens.add({
+        targets: this._crowdGfx,
+        alpha: 0.3,
+        duration: 90,
+        yoyo: true,
+        repeat: 5,
+        ease: 'Sine.inOut',
+        onComplete: () => this._crowdGfx.setAlpha(1),
+      });
+    }
+
     const CONF_COLORS = [0xFFD700, 0x0065BD, 0xFFFFFF, 0xFF5252, 0x4CAF50, 0xFF69B4, 0xC8962E, 0x00BFFF];
 
     const _confettiRain = () => {
@@ -738,6 +756,173 @@ class GameScene extends Phaser.Scene {
         },
       });
     });
+  }
+
+  // ── Crowd stands around the pitch ─────────────────────────────────────────
+  _drawCrowd(cols, rows) {
+    const cg = this._crowdGfx;
+    cg.clear();
+
+    const cs = this._cellSize;
+    const ox = this._offsetX;
+    const oy = this._offsetY;
+    const pw = cols * cs;
+    const ph = rows * cs;
+    const W  = this.scale.width;
+    const H  = this.scale.height;
+
+    // 12 Scotland-heavy, 4 opposition — mix of navy, blue, white, gold, red
+    const JERSEY = [
+      0x003F7F, 0x0065BD, 0x003F7F, 0xFFFFFF,
+      0x0065BD, 0x003F7F, 0xC8962E, 0x0065BD,
+      0x003F7F, 0xFFFFFF, 0x0065BD, 0x003F7F,
+      0xCC2222, 0xFFFFFF, 0xCC2222, 0x0065BD,
+    ];
+    const HAIR = [0x111111, 0x553300, 0xBBAA00, 0x772200, 0x444444];
+
+    const HEAD_R = 4;
+    const BODY_W = 8;
+    const BODY_H = 7;
+    const SPACING = 12;
+    const BAND_H  = BODY_H + HEAD_R * 2 + 2;  // total px a fan row needs
+
+    // One fan facing the pitch. edgeY = pitch border; dir=-1 → above, dir=+1 → below
+    const drawFan = (cx, edgeY, dir) => {
+      const si = Math.floor(cx / 9) & 15;
+      const hi = Math.floor(cx / 11) % HAIR.length;
+      const bodyTopY = dir === -1 ? edgeY - 2 - BODY_H : edgeY + 2;
+      const headCY   = dir === -1 ? bodyTopY - HEAD_R   : bodyTopY + BODY_H + HEAD_R;
+
+      cg.fillStyle(JERSEY[si], 1);
+      cg.fillRect(cx - BODY_W / 2, bodyTopY, BODY_W, BODY_H);
+
+      cg.fillStyle(0xF0C080, 1);
+      cg.fillCircle(cx, headCY, HEAD_R);
+
+      cg.fillStyle(HAIR[hi], 1);
+      cg.fillRect(cx - HEAD_R, headCY - HEAD_R, HEAD_R * 2, HEAD_R);
+    };
+
+    const drawStand = (x, y, w, h) => {
+      cg.fillStyle(0x0A1E0A, 0.65);
+      cg.fillRect(x, y, w, h);
+    };
+
+    // Fans above the pitch
+    if (oy >= BAND_H) {
+      drawStand(ox, oy - BAND_H - 1, pw, BAND_H + 1);
+      const n = Math.floor(pw / SPACING);
+      for (let i = 0; i < n; i++) drawFan(ox + i * SPACING + SPACING / 2, oy - 1, -1);
+    }
+
+    // Fans below the pitch
+    if (H - (oy + ph) >= BAND_H) {
+      drawStand(ox, oy + ph, pw, BAND_H + 1);
+      const n = Math.floor(pw / SPACING);
+      for (let i = 0; i < n; i++) drawFan(ox + i * SPACING + SPACING / 2, oy + ph + 1, 1);
+    }
+
+    // Fans on the sides (simplified — facing inward as blobs)
+    const sideW = HEAD_R * 2 + BODY_H + 2;
+    if (ox >= sideW) {
+      drawStand(ox - sideW - 1, oy, sideW + 1, ph);
+      const n = Math.floor(ph / SPACING);
+      for (let i = 0; i < n; i++) {
+        const fy  = oy + i * SPACING + SPACING / 2;
+        const si  = (i * 3) & 15;
+        const hi  = (i * 2) % HAIR.length;
+        // body then head (fan faces east/right toward pitch)
+        cg.fillStyle(JERSEY[si], 1);
+        cg.fillRect(ox - sideW + 1, fy - BODY_W / 2, BODY_H, BODY_W);
+        cg.fillStyle(0xF0C080, 1);
+        cg.fillCircle(ox - sideW + 1 + BODY_H + HEAD_R, fy, HEAD_R);
+        cg.fillStyle(HAIR[hi], 1);
+        cg.fillRect(ox - sideW + 1 + BODY_H + HEAD_R - HEAD_R, fy - HEAD_R, HEAD_R * 2, HEAD_R);
+      }
+    }
+    if (W - (ox + pw) >= sideW) {
+      drawStand(ox + pw, oy, sideW + 1, ph);
+      const n = Math.floor(ph / SPACING);
+      for (let i = 0; i < n; i++) {
+        const fy  = oy + i * SPACING + SPACING / 2;
+        const si  = (i * 5 + 4) & 15;
+        const hi  = (i * 3 + 1) % HAIR.length;
+        // body then head (fan faces west/left toward pitch)
+        cg.fillStyle(JERSEY[si], 1);
+        cg.fillRect(ox + pw + HEAD_R + 2, fy - BODY_W / 2, BODY_H, BODY_W);
+        cg.fillStyle(0xF0C080, 1);
+        cg.fillCircle(ox + pw + 2, fy, HEAD_R);
+        cg.fillStyle(HAIR[hi], 1);
+        cg.fillRect(ox + pw + 2 - HEAD_R, fy - HEAD_R, HEAD_R * 2, HEAD_R);
+      }
+    }
+  }
+
+  // ── Decorative players in in-goal zones (depth 0, behind gameplay cells) ──
+  _drawPitchPlayers(cols, rows) {
+    const pg = this._playersGfx;
+    pg.clear();
+
+    const cs = this._cellSize;
+    const s  = cs / 90;  // scale relative to reference cell size
+
+    const drawPlayer = (col, row, jerseyColor) => {
+      const { px, py } = this._cellPixel(col, row);
+      const cx = px + cs * 0.5;
+      const cy = py + cs * 0.52;
+
+      const h  = Math.max(3, Math.round(5 * s));
+      const bw = Math.max(5, Math.round(9 * s));
+      const bh = Math.max(5, Math.round(11 * s));
+      const ll = Math.max(4, Math.round(10 * s));
+      const lw = Math.max(2, Math.round(3 * s));
+
+      // Shadow
+      pg.fillStyle(0x000000, 0.15);
+      pg.fillEllipse(cx, cy + bh + ll + 1, bw * 2.5, Math.max(3, 5 * s));
+
+      // Legs
+      pg.lineStyle(lw, 0x003F7F, 1);
+      pg.beginPath(); pg.moveTo(cx - 2 * s, cy + bh); pg.lineTo(cx - 3 * s, cy + bh + ll); pg.strokePath();
+      pg.beginPath(); pg.moveTo(cx + 2 * s, cy + bh); pg.lineTo(cx + 3 * s, cy + bh + ll); pg.strokePath();
+
+      // Jersey
+      pg.fillStyle(jerseyColor, 1);
+      pg.fillRoundedRect(cx - bw, cy - bh, bw * 2, bh * 2, Math.max(2, 2 * s));
+
+      // Horizontal stripe on jersey
+      pg.fillStyle(0xFFFFFF, 0.25);
+      pg.fillRect(cx - bw, cy - 2 * s, bw * 2, Math.max(2, 4 * s));
+
+      // Arms
+      pg.lineStyle(Math.max(2, Math.round(4 * s)), jerseyColor, 1);
+      pg.beginPath(); pg.moveTo(cx - bw, cy - bh * 0.3); pg.lineTo(cx - bw * 1.8, cy + bh * 0.3); pg.strokePath();
+      pg.beginPath(); pg.moveTo(cx + bw, cy - bh * 0.3); pg.lineTo(cx + bw * 1.8, cy + bh * 0.3); pg.strokePath();
+
+      // Hands
+      pg.fillStyle(0xF0C080, 1);
+      pg.fillCircle(cx - bw * 1.8, cy + bh * 0.3, Math.max(2, 2.5 * s));
+      pg.fillCircle(cx + bw * 1.8, cy + bh * 0.3, Math.max(2, 2.5 * s));
+
+      // Head
+      pg.fillStyle(0xF0C080, 1);
+      pg.fillCircle(cx, cy - bh - h, h);
+
+      // Hair
+      const HAIR_COLS = [0x222222, 0x663300, 0xAA8800];
+      pg.fillStyle(HAIR_COLS[col % HAIR_COLS.length], 1);
+      pg.fillRect(cx - h, cy - bh - h * 2, h * 2, h);
+    };
+
+    const midRow = Math.floor(rows / 2);
+
+    // Opposition (red) in left in-goal column
+    drawPlayer(0, Math.max(0, midRow - 1), 0xCC2222);
+    if (rows >= 4) drawPlayer(0, Math.min(rows - 1, midRow + 1), 0xAA1111);
+
+    // Scotland teammates (navy / bright blue) in right in-goal column
+    drawPlayer(cols - 1, Math.max(0, midRow - 1), 0x003F7F);
+    if (rows >= 4) drawPlayer(cols - 1, Math.min(rows - 1, midRow + 1), 0x0065BD);
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
