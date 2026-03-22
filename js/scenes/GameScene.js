@@ -504,7 +504,6 @@ class GameScene extends Phaser.Scene {
   }
 
   _flashGoalPosts() {
-    // Tween the post graphics to yellow and back
     const pg = this._postGfx;
     this.tweens.add({
       targets: pg,
@@ -512,14 +511,7 @@ class GameScene extends Phaser.Scene {
       duration: 100,
       yoyo: true,
       repeat: 3,
-      onUpdate: (tween) => {
-        // Redraw in gold during flash
-        pg.setTint(0xFFD700);
-      },
-      onComplete: () => {
-        pg.clearTint();
-        pg.setAlpha(1);
-      },
+      onComplete: () => pg.setAlpha(1),
     });
   }
 
@@ -658,7 +650,7 @@ class GameScene extends Phaser.Scene {
       pl.fillStyle(0xFFFFFF, 1); pl.fillRect(-9, -1, 18, 3); pl.fillRect(-1, -5, 3, 10);
       const trail = this.add.graphics().setDepth(DEPTH + 6);
       trail.fillStyle(0xFFFFFF, 0.25); trail.fillRect(0, -2, 55, 4);
-      if (dir === -1) pl.setFlipX(true);
+      if (dir === -1) pl.setScale(-1, 1);
       pl.setPosition(sx, y);
       this.tweens.add({
         targets: pl, x: ex, duration: 1600, ease: 'Linear',
@@ -711,7 +703,6 @@ class GameScene extends Phaser.Scene {
         targets: [banner, badge, overlay, scotText],
         alpha: 0, duration: 280,
         onComplete: () => {
-          flash.destroy && flash.destroy(); // guard
           if (onDone) onDone();
         },
       });

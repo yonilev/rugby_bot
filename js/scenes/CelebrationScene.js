@@ -366,7 +366,7 @@ class CelebrationScene extends Phaser.Scene {
       trails.push(puff);
     }
 
-    if (dir === -1) plane.setFlipX(true);
+    if (dir === -1) plane.setScale(-1, 1);
     plane.setPosition(startX, y);
 
     const duration = 1600;
