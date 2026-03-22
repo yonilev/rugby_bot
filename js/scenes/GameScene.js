@@ -535,132 +535,145 @@ class GameScene extends Phaser.Scene {
     overlay.setAlpha(0);
     this.tweens.add({ targets: overlay, alpha: 0.5, duration: 180 });
 
-    // Confetti rain
     const CONF_COLORS = [0xFFD700, 0x0065BD, 0xFFFFFF, 0xFF5252, 0x4CAF50, 0xFF69B4, 0xC8962E, 0x00BFFF];
-    for (let i = 0; i < 160; i++) {
-      const g = this.add.graphics().setDepth(DEPTH + 2);
-      const c = CONF_COLORS[Math.floor(Math.random() * CONF_COLORS.length)];
-      g.fillStyle(c, 1);
-      Math.random() < 0.5 ? g.fillRect(-5, -7, 10, 14) : g.fillCircle(0, 0, 6);
-      g.setPosition(Math.random() * W, -20);
-      this.tweens.add({
-        targets: g, x: g.x + (Math.random() - 0.5) * 220,
-        y: H + 40, angle: (Math.random() < 0.5 ? 540 : -540),
-        duration: 2200 + Math.random() * 1200, delay: Math.random() * 700,
-        ease: 'Sine.in', onComplete: () => g.destroy(),
-      });
-    }
 
-    // Confetti burst from centre
-    for (let i = 0; i < 80; i++) {
-      const g = this.add.graphics().setDepth(DEPTH + 3);
-      const c = CONF_COLORS[Math.floor(Math.random() * CONF_COLORS.length)];
-      g.fillStyle(c, 1);
-      Math.random() < 0.5 ? g.fillRect(-5, -7, 10, 14) : g.fillCircle(0, 0, 6);
-      g.setPosition(W / 2, H / 2);
-      const a = Math.random() * Math.PI * 2, spd = 80 + Math.random() * 200;
-      this.tweens.add({
-        targets: g, x: W / 2 + Math.cos(a) * spd, y: H / 2 + Math.sin(a) * spd + 80,
-        angle: (Math.random() - 0.5) * 720, alpha: 0,
-        duration: 1000 + Math.random() * 800, ease: 'Power2.out',
-        onComplete: () => g.destroy(),
-      });
-    }
-
-    // Fireworks
-    const _firework = (cx, cy) => {
-      const FW_COLORS = [0xFFD700, 0xFF4444, 0x4CAF50, 0x00BFFF, 0xFF69B4, 0xFFFFFF, 0xC8962E];
-      const col = FW_COLORS[Math.floor(Math.random() * FW_COLORS.length)];
-      const burst = this.add.graphics().setDepth(DEPTH + 8);
-      burst.fillStyle(0xFFFFFF, 1); burst.fillCircle(0, 0, 14);
-      burst.setPosition(cx, cy);
-      this.tweens.add({ targets: burst, alpha: 0, scaleX: 4, scaleY: 4, duration: 200,
-        ease: 'Power2', onComplete: () => burst.destroy() });
-      for (let i = 0; i < 20; i++) {
-        const ang = (i / 20) * Math.PI * 2, spd = 80 + Math.random() * 110;
-        const sp = this.add.graphics().setDepth(DEPTH + 7);
-        sp.fillStyle(col, 1); sp.fillCircle(0, 0, 5 + Math.random() * 3);
-        sp.setPosition(cx, cy);
+    const _confettiRain = () => {
+      for (let i = 0; i < 160; i++) {
+        const g = this.add.graphics().setDepth(DEPTH + 2);
+        const c = CONF_COLORS[Math.floor(Math.random() * CONF_COLORS.length)];
+        g.fillStyle(c, 1);
+        Math.random() < 0.5 ? g.fillRect(-5, -7, 10, 14) : g.fillCircle(0, 0, 6);
+        g.setPosition(Math.random() * W, -20);
         this.tweens.add({
-          targets: sp, x: cx + Math.cos(ang) * spd, y: cy + Math.sin(ang) * spd + 50,
-          alpha: 0, scaleX: 0.2, scaleY: 0.2,
-          duration: 700 + Math.random() * 500, ease: 'Power2.out',
-          onComplete: () => sp.destroy(),
+          targets: g, x: g.x + (Math.random() - 0.5) * 220,
+          y: H + 40, angle: (Math.random() < 0.5 ? 540 : -540),
+          duration: 2200 + Math.random() * 1200, delay: Math.random() * 700,
+          ease: 'Sine.in', onComplete: () => g.destroy(),
         });
       }
     };
-    [[80, 0.25, 0.22],[220, 0.75, 0.18],[380, 0.50, 0.28],[550, 0.18, 0.38],
-     [720, 0.82, 0.22],[900, 0.60, 0.12],[1100, 0.35, 0.30],[1300, 0.72, 0.18],
-     [1600, 0.45, 0.20],[2000, 0.25, 0.28],[2400, 0.80, 0.15]].forEach(([d, xf, yf]) => {
-      this.time.delayedCall(d, () => _firework(W * xf, H * yf));
-    });
 
-    // Balloons
-    const BAL_COLORS = [0xFF4444, 0x4CAF50, 0xFFD700, 0x0065BD, 0xFF69B4, 0xC8962E, 0x9B59B6];
-    for (let i = 0; i < 20; i++) {
-      this.time.delayedCall(i * 100, () => {
-        const col = BAL_COLORS[Math.floor(Math.random() * BAL_COLORS.length)];
-        const bx  = 30 + Math.random() * (W - 60);
-        const g   = this.add.graphics().setDepth(DEPTH + 4);
-        g.fillStyle(col, 0.9); g.fillEllipse(0, 0, 24, 32);
-        g.fillStyle(0xFFFFFF, 0.35); g.fillEllipse(-5, -7, 9, 12);
-        g.fillStyle(col, 1); g.fillTriangle(0, 14, -3, 20, 3, 20);
-        g.lineStyle(1.5, 0x888888, 0.8); g.beginPath(); g.moveTo(0, 20); g.lineTo(0, 40); g.strokePath();
-        g.setPosition(bx, H + 50);
+    const _confettiBurst = () => {
+      for (let i = 0; i < 80; i++) {
+        const g = this.add.graphics().setDepth(DEPTH + 3);
+        const c = CONF_COLORS[Math.floor(Math.random() * CONF_COLORS.length)];
+        g.fillStyle(c, 1);
+        Math.random() < 0.5 ? g.fillRect(-5, -7, 10, 14) : g.fillCircle(0, 0, 6);
+        g.setPosition(W / 2, H / 2);
+        const a = Math.random() * Math.PI * 2, spd = 80 + Math.random() * 200;
         this.tweens.add({
-          targets: g, x: bx + (Math.random() - 0.5) * 100, y: -60,
-          duration: 2200 + Math.random() * 1200, delay: Math.random() * 400,
-          ease: 'Sine.inOut', onComplete: () => g.destroy(),
+          targets: g, x: W / 2 + Math.cos(a) * spd, y: H / 2 + Math.sin(a) * spd + 80,
+          angle: (Math.random() - 0.5) * 720, alpha: 0,
+          duration: 1000 + Math.random() * 800, ease: 'Power2.out',
+          onComplete: () => g.destroy(),
         });
-      });
-    }
+      }
+    };
 
-    // Musical notes (marching band)
-    const NOTES = ['♩', '♪', '♫', '♬', '🎵', '🎶'];
-    const NOTE_COLS = ['#FFD700', '#FF69B4', '#00BFFF', '#FFFFFF', '#C8962E'];
-    for (let i = 0; i < 14; i++) {
-      this.time.delayedCall(i * 180, () => {
-        const nx = 20 + Math.random() * (W - 40);
-        const nt = this.add.text(nx, H * 0.85, NOTES[Math.floor(Math.random() * NOTES.length)], {
-          fontSize: `${20 + Math.floor(Math.random() * 22)}px`,
-          color: NOTE_COLS[Math.floor(Math.random() * NOTE_COLS.length)],
-          stroke: '#000000', strokeThickness: 2,
-        }).setOrigin(0.5, 0.5).setDepth(DEPTH + 5).setAlpha(0);
-        this.tweens.add({ targets: nt, alpha: 1, duration: 120, onComplete: () => {
+    const _fireworks = () => {
+      const FW_COLORS = [0xFFD700, 0xFF4444, 0x4CAF50, 0x00BFFF, 0xFF69B4, 0xFFFFFF, 0xC8962E];
+      const _firework = (cx, cy) => {
+        const col = FW_COLORS[Math.floor(Math.random() * FW_COLORS.length)];
+        const burst = this.add.graphics().setDepth(DEPTH + 8);
+        burst.fillStyle(0xFFFFFF, 1); burst.fillCircle(0, 0, 14);
+        burst.setPosition(cx, cy);
+        this.tweens.add({ targets: burst, alpha: 0, scaleX: 4, scaleY: 4, duration: 200,
+          ease: 'Power2', onComplete: () => burst.destroy() });
+        for (let i = 0; i < 20; i++) {
+          const ang = (i / 20) * Math.PI * 2, spd = 80 + Math.random() * 110;
+          const sp = this.add.graphics().setDepth(DEPTH + 7);
+          sp.fillStyle(col, 1); sp.fillCircle(0, 0, 5 + Math.random() * 3);
+          sp.setPosition(cx, cy);
           this.tweens.add({
-            targets: nt, y: H * 0.1, x: nx + (Math.random() - 0.5) * 60,
-            alpha: 0, angle: (Math.random() - 0.5) * 40, scale: 1.3,
-            duration: 1400 + Math.random() * 600, ease: 'Power2.out',
-            onComplete: () => nt.destroy(),
+            targets: sp, x: cx + Math.cos(ang) * spd, y: cy + Math.sin(ang) * spd + 50,
+            alpha: 0, scaleX: 0.2, scaleY: 0.2,
+            duration: 700 + Math.random() * 500, ease: 'Power2.out',
+            onComplete: () => sp.destroy(),
           });
-        }});
-      });
-    }
-
-    // Jet planes
-    const _jet = (y, dir) => {
-      const sx = dir === 1 ? -90 : W + 90, ex = dir === 1 ? W + 90 : -90;
-      const pl = this.add.graphics().setDepth(DEPTH + 9);
-      pl.fillStyle(0xDDDDEE, 1); pl.fillRect(-30, -5, 60, 10);
-      pl.fillStyle(0x88BBDD, 1); pl.fillTriangle(28, -4, 48, -1, 28, 4);
-      pl.fillStyle(0xCCCCDD, 1);
-      pl.fillTriangle(0, 0, -12, -26, 18, 0); pl.fillTriangle(0, 0, -12, 26, 18, 0);
-      pl.fillTriangle(-26, 0, -30, -16, -18, 0); pl.fillTriangle(-26, 0, -30, 16, -18, 0);
-      pl.fillStyle(0x003F7F, 1); pl.fillRect(-8, -4, 16, 8);
-      pl.fillStyle(0xFFFFFF, 1); pl.fillRect(-9, -1, 18, 3); pl.fillRect(-1, -5, 3, 10);
-      const trail = this.add.graphics().setDepth(DEPTH + 6);
-      trail.fillStyle(0xFFFFFF, 0.25); trail.fillRect(0, -2, 55, 4);
-      if (dir === -1) pl.setScale(-1, 1);
-      pl.setPosition(sx, y);
-      this.tweens.add({
-        targets: pl, x: ex, duration: 1600, ease: 'Linear',
-        onUpdate: () => trail.setPosition(pl.x + (dir === 1 ? -65 : 65), pl.y),
-        onComplete: () => { pl.destroy(); trail.destroy(); },
+        }
+      };
+      [[80, 0.25, 0.22],[220, 0.75, 0.18],[380, 0.50, 0.28],[550, 0.18, 0.38],
+       [720, 0.82, 0.22],[900, 0.60, 0.12],[1100, 0.35, 0.30],[1300, 0.72, 0.18],
+       [1600, 0.45, 0.20],[2000, 0.25, 0.28],[2400, 0.80, 0.15]].forEach(([d, xf, yf]) => {
+        this.time.delayedCall(d, () => _firework(W * xf, H * yf));
       });
     };
-    [[150, 0.12, 1],[500, 0.38, -1],[900, 0.20, 1],[1300, 0.52, -1],[1700, 0.28, 1]].forEach(([d, yf, dir]) => {
-      this.time.delayedCall(d, () => _jet(H * yf, dir));
-    });
+
+    const _balloons = () => {
+      const BAL_COLORS = [0xFF4444, 0x4CAF50, 0xFFD700, 0x0065BD, 0xFF69B4, 0xC8962E, 0x9B59B6];
+      for (let i = 0; i < 20; i++) {
+        this.time.delayedCall(i * 100, () => {
+          const col = BAL_COLORS[Math.floor(Math.random() * BAL_COLORS.length)];
+          const bx  = 30 + Math.random() * (W - 60);
+          const g   = this.add.graphics().setDepth(DEPTH + 4);
+          g.fillStyle(col, 0.9); g.fillEllipse(0, 0, 24, 32);
+          g.fillStyle(0xFFFFFF, 0.35); g.fillEllipse(-5, -7, 9, 12);
+          g.fillStyle(col, 1); g.fillTriangle(0, 14, -3, 20, 3, 20);
+          g.lineStyle(1.5, 0x888888, 0.8); g.beginPath(); g.moveTo(0, 20); g.lineTo(0, 40); g.strokePath();
+          g.setPosition(bx, H + 50);
+          this.tweens.add({
+            targets: g, x: bx + (Math.random() - 0.5) * 100, y: -60,
+            duration: 2200 + Math.random() * 1200, delay: Math.random() * 400,
+            ease: 'Sine.inOut', onComplete: () => g.destroy(),
+          });
+        });
+      }
+    };
+
+    const _musicalNotes = () => {
+      const NOTES = ['♩', '♪', '♫', '♬', '🎵', '🎶'];
+      const NOTE_COLS = ['#FFD700', '#FF69B4', '#00BFFF', '#FFFFFF', '#C8962E'];
+      for (let i = 0; i < 14; i++) {
+        this.time.delayedCall(i * 180, () => {
+          const nx = 20 + Math.random() * (W - 40);
+          const nt = this.add.text(nx, H * 0.85, NOTES[Math.floor(Math.random() * NOTES.length)], {
+            fontSize: `${20 + Math.floor(Math.random() * 22)}px`,
+            color: NOTE_COLS[Math.floor(Math.random() * NOTE_COLS.length)],
+            stroke: '#000000', strokeThickness: 2,
+          }).setOrigin(0.5, 0.5).setDepth(DEPTH + 5).setAlpha(0);
+          this.tweens.add({ targets: nt, alpha: 1, duration: 120, onComplete: () => {
+            this.tweens.add({
+              targets: nt, y: H * 0.1, x: nx + (Math.random() - 0.5) * 60,
+              alpha: 0, angle: (Math.random() - 0.5) * 40, scale: 1.3,
+              duration: 1400 + Math.random() * 600, ease: 'Power2.out',
+              onComplete: () => nt.destroy(),
+            });
+          }});
+        });
+      }
+    };
+
+    const _jets = () => {
+      const _jet = (y, dir) => {
+        const sx = dir === 1 ? -90 : W + 90, ex = dir === 1 ? W + 90 : -90;
+        const pl = this.add.graphics().setDepth(DEPTH + 9);
+        pl.fillStyle(0xDDDDEE, 1); pl.fillRect(-30, -5, 60, 10);
+        pl.fillStyle(0x88BBDD, 1); pl.fillTriangle(28, -4, 48, -1, 28, 4);
+        pl.fillStyle(0xCCCCDD, 1);
+        pl.fillTriangle(0, 0, -12, -26, 18, 0); pl.fillTriangle(0, 0, -12, 26, 18, 0);
+        pl.fillTriangle(-26, 0, -30, -16, -18, 0); pl.fillTriangle(-26, 0, -30, 16, -18, 0);
+        pl.fillStyle(0x003F7F, 1); pl.fillRect(-8, -4, 16, 8);
+        pl.fillStyle(0xFFFFFF, 1); pl.fillRect(-9, -1, 18, 3); pl.fillRect(-1, -5, 3, 10);
+        const trail = this.add.graphics().setDepth(DEPTH + 6);
+        trail.fillStyle(0xFFFFFF, 0.25); trail.fillRect(0, -2, 55, 4);
+        if (dir === -1) pl.setScale(-1, 1);
+        pl.setPosition(sx, y);
+        this.tweens.add({
+          targets: pl, x: ex, duration: 1600, ease: 'Linear',
+          onUpdate: () => trail.setPosition(pl.x + (dir === 1 ? -65 : 65), pl.y),
+          onComplete: () => { pl.destroy(); trail.destroy(); },
+        });
+      };
+      [[150, 0.12, 1],[500, 0.38, -1],[900, 0.20, 1],[1300, 0.52, -1],[1700, 0.28, 1]].forEach(([d, yf, dir]) => {
+        this.time.delayedCall(d, () => _jet(H * yf, dir));
+      });
+    };
+
+    // Pick 2–3 effects at random each celebration
+    const effects = [_confettiRain, _confettiBurst, _fireworks, _balloons, _musicalNotes, _jets];
+    const count = 2 + Math.floor(Math.random() * 2); // 2 or 3
+    const picked = effects.slice().sort(() => Math.random() - 0.5).slice(0, count);
+    picked.forEach(fn => fn());
 
     // "TRY!" banner
     const banner = this.add.text(W / 2, H / 2 - 55, '🏉  TRY!', {
