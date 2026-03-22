@@ -8,7 +8,7 @@
   flex-wrap: wrap;
   gap: 6px;
   border-bottom: 1px solid var(--border);
-  max-height: 100px;
+  max-height: 72px;
   overflow-y: auto;
 }
 

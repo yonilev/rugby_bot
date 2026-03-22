@@ -314,13 +314,14 @@ const BlockSystem = (() => {
     GameState.mutations.addCommand(node);
     AudioEngine.playBlockPlace();
 
-    // Mark the newly appended block as just-added for animation
+    // Mark the newly appended block as just-added for animation, then scroll into view
     setTimeout(() => {
       const el = _tray.querySelector(`[data-node-id="${node.id}"] .block`);
       if (el) {
         el.classList.add('just-added');
         setTimeout(() => el.classList.remove('just-added'), 300);
       }
+      _tray.scrollTop = _tray.scrollHeight;
     }, 10);
   }
 
