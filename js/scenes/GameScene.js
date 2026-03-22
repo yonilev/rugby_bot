@@ -132,46 +132,56 @@ class GameScene extends Phaser.Scene {
     g.strokeRect(ox, oy, pitchW, pitchH);
 
     // ── Goal posts at left and right ──────────────────────────────────────
-    this._drawGoalPosts(ox,             oy, pitchH, 'left');
-    this._drawGoalPosts(ox + pitchW,    oy, pitchH, 'right');
+    this._drawGoalPosts(ox,          oy, pitchH, ox);
+    this._drawGoalPosts(ox + pitchW, oy, pitchH, ox);
   }
 
-  // Draws H-shaped rugby goal posts on one side of the pitch
-  _drawGoalPosts(x, oy, pitchH, side) {
+  // Draws H-shaped rugby goal posts on one side of the pitch, with 3-D shading
+  _drawGoalPosts(x, oy, pitchH, margin) {
     const pg = this._postGfx;
     const cs = this._cellSize;
 
-    const midY    = oy + pitchH / 2;
-    const uprightH = cs * 1.4;         // how tall the uprights are above crossbar
-    const crossbarY = midY - cs * 0.1; // crossbar height
-    const halfSpan  = cs * 0.45;       // half distance between uprights
-    const postW     = 4;
+    const midY      = oy + pitchH / 2;
+    const uprightH  = cs * 1.5;           // uprights extend this far above crossbar
+    const baseH     = cs * 0.38;          // central stem below crossbar
+    const crossbarY = Math.round(midY - cs * 0.05); // top edge of the crossbar
+    const postW     = 8;                  // post diameter (pixels)
+    // Clamp halfSpan so the outer upright never clips past the canvas edge
+    const halfSpan  = Math.min(Math.round(cs * 0.48), margin - Math.ceil(postW / 2) - 1);
+    const barH      = 7;                  // crossbar height (pixels)
+    const hl        = 2;                  // highlight strip (left/top edge)
+    const sh        = 2;                  // shadow strip   (right/bottom edge)
 
-    // Base post (central, below crossbar)
-    const baseH = cs * 0.3;
-    pg.fillStyle(0xE8E8D0, 1);
-    pg.fillRect(x - postW / 2, crossbarY, postW, baseH);
+    const colHL  = 0xFFFFF8;   // near-white highlight
+    const colMid = 0xE8E4C0;   // cream main body
+    const colSH  = 0x7A7860;   // warm dark-grey shadow
 
-    // Crossbar (horizontal)
-    pg.lineStyle(postW, 0xE8E8D0, 1);
-    pg.beginPath();
-    pg.moveTo(x - halfSpan - postW / 2, crossbarY);
-    pg.lineTo(x + halfSpan + postW / 2, crossbarY);
-    pg.strokePath();
+    // Draw one 3-D vertical cylindrical segment (top-to-bottom)
+    const drawVPost = (cx, topY, height) => {
+      const left = Math.round(cx - postW / 2);
+      pg.fillStyle(colSH,  1); pg.fillRect(left + postW - sh, topY, sh, height);  // right shadow
+      pg.fillStyle(colMid, 1); pg.fillRect(left + hl, topY, postW - hl - sh, height); // body
+      pg.fillStyle(colHL,  1); pg.fillRect(left, topY, hl, height);               // left highlight
+    };
 
-    // Left upright (goes up from crossbar)
-    pg.beginPath();
-    pg.moveTo(x - halfSpan, crossbarY);
-    pg.lineTo(x - halfSpan, crossbarY - uprightH);
-    pg.strokePath();
+    // Draw one 3-D horizontal bar segment (left-to-right)
+    const drawHBar = (x1, x2, topY, height) => {
+      const w = x2 - x1;
+      pg.fillStyle(colSH,  1); pg.fillRect(x1, topY + height - sh, w, sh);        // bottom shadow
+      pg.fillStyle(colMid, 1); pg.fillRect(x1, topY + hl, w, height - hl - sh);   // body
+      pg.fillStyle(colHL,  1); pg.fillRect(x1, topY, w, hl);                      // top highlight
+    };
 
-    // Right upright
-    pg.beginPath();
-    pg.moveTo(x + halfSpan, crossbarY);
-    pg.lineTo(x + halfSpan, crossbarY - uprightH);
-    pg.strokePath();
+    // Left upright   (above crossbar)
+    drawVPost(x - halfSpan, crossbarY - uprightH, uprightH);
+    // Right upright  (above crossbar)
+    drawVPost(x + halfSpan, crossbarY - uprightH, uprightH);
+    // Crossbar       (full width including uprights)
+    drawHBar(Math.round(x - halfSpan - postW / 2), Math.round(x + halfSpan + postW / 2), crossbarY, barH);
+    // Central stem   (below crossbar)
+    drawVPost(x, crossbarY + barH, baseH);
 
-    // Top caps on uprights
+    // Gold safety caps on top of each upright
     pg.fillStyle(0xC8962E, 1);
     pg.fillCircle(x - halfSpan, crossbarY - uprightH, 4);
     pg.fillCircle(x + halfSpan, crossbarY - uprightH, 4);
@@ -425,7 +435,7 @@ class GameScene extends Phaser.Scene {
 
     // Kick toward the right-hand (east) goal posts
     const postX = ox + pitchW;
-    const postY = oy + pitchH / 2 - cs * 0.1; // crossbar height
+    const postY = oy + pitchH / 2 - cs * 0.05; // crossbar height (matches _drawGoalPosts)
 
     const startX = this._finnSprite.x;
     const startY = this._finnSprite.y;
