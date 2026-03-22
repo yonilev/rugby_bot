@@ -8,6 +8,8 @@ const GameState = (() => {
     session: {
       totalScore: 0,
       completedLevelIds: [],  // string[]
+      tries: 0,
+      conversions: 0,
     },
 
     // Current level in play
@@ -56,6 +58,8 @@ const GameState = (() => {
         const saved = JSON.parse(raw);
         state.session.totalScore = saved.totalScore || 0;
         state.session.completedLevelIds = saved.completedLevelIds || [];
+        state.session.tries = saved.tries || 0;
+        state.session.conversions = saved.conversions || 0;
       }
     } catch (e) {}
   }
@@ -148,6 +152,18 @@ const GameState = (() => {
       state.session.totalScore += points;
       saveSession();
       dispatch('score', { total: state.session.totalScore, added: points });
+    },
+
+    recordTry() {
+      state.session.tries += 1;
+      saveSession();
+      dispatch('score', { total: state.session.totalScore });
+    },
+
+    recordConversion() {
+      state.session.conversions += 1;
+      saveSession();
+      dispatch('score', { total: state.session.totalScore });
     },
 
     completeLevel(levelId) {

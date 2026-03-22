@@ -8,29 +8,31 @@ class GameScene extends Phaser.Scene {
     this._offsetX    = 0;
     this._offsetY    = 0;
     this._finnSprite = null;
-    this._cellObjs   = {};    // key → Phaser object
+    this._cellObjs   = {};
+    this._waypointGlow = {};
     this._gridGfx    = null;
-    this._waypointGlow = {}; // col,row → Phaser object
+    this._postGfx    = null;   // goal posts graphics (separate layer for flashing)
 
     // Public API for executor.js and screens.js
     this.api = {
-      loadLevel:   (def) => this._loadLevel(def),
-      moveFinnTo:  (col, row, dir, onDone) => this._moveFinnTo(col, row, dir, onDone),
-      turnFinn:    (dir, onDone) => this._turnFinn(dir, onDone),
-      shakeError:  () => this._shakeError(),
-      flashCell:   (col, row, color) => this._flashCell(col, row, color),
+      loadLevel:       (def) => this._loadLevel(def),
+      moveFinnTo:      (col, row, dir, onDone) => this._moveFinnTo(col, row, dir, onDone),
+      turnFinn:        (dir, onDone) => this._turnFinn(dir, onDone),
+      shakeError:      () => this._shakeError(),
+      flashCell:       (col, row, color) => this._flashCell(col, row, color),
       collectWaypoint: (col, row) => this._collectWaypoint(col, row),
       highlightTryLine: () => this._highlightTryLine(),
-      resetToStart: () => this._resetToStart(),
+      resetToStart:    () => this._resetToStart(),
+      doGoalKick:      (onDone) => this._doGoalKick(onDone),
     };
   }
 
   create() {
     this._gridGfx = this.add.graphics();
-    // Store scene reference globally for executor/score access
+    this._postGfx = this.add.graphics();
+    this._postGfx.setDepth(2);
     window.RUGBY.gameScene = this;
 
-    // If a level is already pending (set before Phaser finished booting), load it
     if (window.RUGBY.pendingLevel) {
       this._loadLevel(window.RUGBY.pendingLevel);
       window.RUGBY.pendingLevel = null;
@@ -41,20 +43,18 @@ class GameScene extends Phaser.Scene {
   _loadLevel(def) {
     this._levelDef = def;
 
-    // Destroy existing objects
     if (this._finnSprite) this._finnSprite.destroy();
     Object.values(this._cellObjs).forEach(o => o.destroy());
     Object.values(this._waypointGlow).forEach(o => o.destroy());
     this._cellObjs = {};
     this._waypointGlow = {};
 
-    // Compute cell size and grid offset to centre in canvas
     const { cols, rows } = def.grid;
     const W = this.scale.width;
     const H = this.scale.height;
     this._cellSize = Math.min(
       Math.floor((W - 20) / cols),
-      Math.floor((H - 20) / rows),
+      Math.floor((H - 40) / rows),
       90
     );
     const gridW = cols * this._cellSize;
@@ -71,50 +71,110 @@ class GameScene extends Phaser.Scene {
   _drawPitch(cols, rows) {
     const g = this._gridGfx;
     g.clear();
+    this._postGfx.clear();
 
     const cs = this._cellSize;
     const ox = this._offsetX;
     const oy = this._offsetY;
+    const pitchW = cols * cs;
+    const pitchH = rows * cs;
 
-    // Alternating pitch stripes
+    // ── Pitch background stripes (alternating dark/light green) ──────────
     for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const color = (c + r) % 2 === 0 ? 0x2D6A2F : 0x348038;
-        g.fillStyle(color, 1);
-        g.fillRect(ox + c * cs, oy + r * cs, cs, cs);
-      }
+      const color = r % 2 === 0 ? 0x2E7D32 : 0x388E3C;
+      g.fillStyle(color, 1);
+      g.fillRect(ox, oy + r * cs, pitchW, cs);
     }
 
-    // Outer border
-    g.lineStyle(3, 0xFFFFFF, 0.9);
-    g.strokeRect(ox, oy, cols * cs, rows * cs);
+    // ── In-goal areas (left and right end-zones, lighter green) ──────────
+    const inGoalW = cs;  // 1 cell deep
+    g.fillStyle(0x1B5E20, 0.6);
+    g.fillRect(ox, oy, inGoalW, pitchH);                        // left
+    g.fillRect(ox + pitchW - inGoalW, oy, inGoalW, pitchH);     // right
 
-    // Grid lines (inner)
-    g.lineStyle(1, 0xFFFFFF, 0.15);
+    // ── Centre circle ─────────────────────────────────────────────────────
+    g.lineStyle(2, 0xFFFFFF, 0.25);
+    const midX = ox + pitchW / 2;
+    const midY = oy + pitchH / 2;
+    g.strokeCircle(midX, midY, Math.min(pitchW, pitchH) * 0.14);
+
+    // ── Centre spot ───────────────────────────────────────────────────────
+    g.fillStyle(0xFFFFFF, 0.3);
+    g.fillCircle(midX, midY, 4);
+
+    // ── 22m lines (at ~1/4 and ~3/4 of pitch width) ───────────────────────
+    const line22Left  = ox + Math.round(pitchW * 0.25);
+    const line22Right = ox + Math.round(pitchW * 0.75);
+    g.lineStyle(2, 0xFFFFFF, 0.3);
+    g.beginPath(); g.moveTo(line22Left,  oy); g.lineTo(line22Left,  oy + pitchH); g.strokePath();
+    g.beginPath(); g.moveTo(line22Right, oy); g.lineTo(line22Right, oy + pitchH); g.strokePath();
+
+    // ── Halfway line ──────────────────────────────────────────────────────
+    g.lineStyle(2, 0xFFFFFF, 0.4);
+    g.beginPath(); g.moveTo(midX, oy); g.lineTo(midX, oy + pitchH); g.strokePath();
+
+    // ── Try lines (solid white, at edge of in-goal areas) ─────────────────
+    g.lineStyle(3, 0xFFFFFF, 0.9);
+    g.beginPath(); g.moveTo(ox + inGoalW, oy); g.lineTo(ox + inGoalW, oy + pitchH); g.strokePath();
+    g.beginPath(); g.moveTo(ox + pitchW - inGoalW, oy); g.lineTo(ox + pitchW - inGoalW, oy + pitchH); g.strokePath();
+
+    // ── Grid lines (inner, very faint) ────────────────────────────────────
+    g.lineStyle(1, 0xFFFFFF, 0.08);
     for (let c = 1; c < cols; c++) {
-      g.beginPath();
-      g.moveTo(ox + c * cs, oy);
-      g.lineTo(ox + c * cs, oy + rows * cs);
-      g.strokePath();
+      g.beginPath(); g.moveTo(ox + c * cs, oy); g.lineTo(ox + c * cs, oy + pitchH); g.strokePath();
     }
     for (let r = 1; r < rows; r++) {
-      g.beginPath();
-      g.moveTo(ox, oy + r * cs);
-      g.lineTo(ox + cols * cs, oy + r * cs);
-      g.strokePath();
+      g.beginPath(); g.moveTo(ox, oy + r * cs); g.lineTo(ox + pitchW, oy + r * cs); g.strokePath();
     }
 
-    // Corner decorations
-    const cornerSize = Math.max(4, cs / 10);
-    g.fillStyle(0xFFFFFF, 0.7);
-    [[0,0],[cols,0],[0,rows],[cols,rows]].forEach(([c, r]) => {
-      g.fillRect(ox + c * cs - cornerSize/2, oy + r * cs - cornerSize/2, cornerSize, cornerSize);
-    });
+    // ── Outer border ──────────────────────────────────────────────────────
+    g.lineStyle(3, 0xFFFFFF, 0.9);
+    g.strokeRect(ox, oy, pitchW, pitchH);
 
-    // Try-line end zones — highlight columns 0 and cols-1 lightly
-    g.fillStyle(0xFFFFFF, 0.04);
-    g.fillRect(ox, oy, cs, rows * cs);
-    g.fillRect(ox + (cols - 1) * cs, oy, cs, rows * cs);
+    // ── Goal posts at left and right ──────────────────────────────────────
+    this._drawGoalPosts(ox,             oy, pitchH, 'left');
+    this._drawGoalPosts(ox + pitchW,    oy, pitchH, 'right');
+  }
+
+  // Draws H-shaped rugby goal posts on one side of the pitch
+  _drawGoalPosts(x, oy, pitchH, side) {
+    const pg = this._postGfx;
+    const cs = this._cellSize;
+
+    const midY    = oy + pitchH / 2;
+    const uprightH = cs * 1.4;         // how tall the uprights are above crossbar
+    const crossbarY = midY - cs * 0.1; // crossbar height
+    const halfSpan  = cs * 0.45;       // half distance between uprights
+    const postW     = 4;
+
+    // Base post (central, below crossbar)
+    const baseH = cs * 0.3;
+    pg.fillStyle(0xE8E8D0, 1);
+    pg.fillRect(x - postW / 2, crossbarY, postW, baseH);
+
+    // Crossbar (horizontal)
+    pg.lineStyle(postW, 0xE8E8D0, 1);
+    pg.beginPath();
+    pg.moveTo(x - halfSpan - postW / 2, crossbarY);
+    pg.lineTo(x + halfSpan + postW / 2, crossbarY);
+    pg.strokePath();
+
+    // Left upright (goes up from crossbar)
+    pg.beginPath();
+    pg.moveTo(x - halfSpan, crossbarY);
+    pg.lineTo(x - halfSpan, crossbarY - uprightH);
+    pg.strokePath();
+
+    // Right upright
+    pg.beginPath();
+    pg.moveTo(x + halfSpan, crossbarY);
+    pg.lineTo(x + halfSpan, crossbarY - uprightH);
+    pg.strokePath();
+
+    // Top caps on uprights
+    pg.fillStyle(0xC8962E, 1);
+    pg.fillCircle(x - halfSpan, crossbarY - uprightH, 4);
+    pg.fillCircle(x + halfSpan, crossbarY - uprightH, 4);
   }
 
   // ── Cell objects ──────────────────────────────────────────────────────────
@@ -134,7 +194,6 @@ class GameScene extends Phaser.Scene {
         const img = this.add.image(px + cs/2, py + cs/2, 'waypoint');
         img.setDisplaySize(cs * 0.8, cs * 0.8);
         this._cellObjs[`${col},${row}`] = img;
-        // Idle float tween
         this.tweens.add({
           targets: img,
           y: img.y - 5,
@@ -152,18 +211,16 @@ class GameScene extends Phaser.Scene {
   }
 
   _drawTryLineCell(col, row, px, py, cs) {
-    // Bright white stripe for the try-line cell
     const g = this.add.graphics();
-    g.fillStyle(0xFFFFFF, 0.35);
+    g.fillStyle(0xFFFFFF, 0.30);
     g.fillRect(px, py, cs, cs);
-    g.lineStyle(2, 0xFFFFFF, 0.9);
+    g.lineStyle(3, 0xFFD700, 0.9);
     g.strokeRect(px + 2, py + 2, cs - 4, cs - 4);
 
-    // "TRY" text
     const text = this.add.text(px + cs/2, py + cs/2, 'TRY', {
-      fontSize: `${Math.max(10, cs/5)}px`,
+      fontSize: `${Math.max(10, cs/4.5)}px`,
       fontStyle: 'bold',
-      color: '#FFFFFF',
+      color: '#FFD700',
       stroke: '#003F7F',
       strokeThickness: 3,
     }).setOrigin(0.5, 0.5);
@@ -171,11 +228,10 @@ class GameScene extends Phaser.Scene {
     const container = this.add.container(0, 0, [g, text]);
     this._cellObjs[`${col},${row}`] = container;
 
-    // Gentle pulse
     this.tweens.add({
       targets: text,
       alpha: 0.5,
-      duration: 800,
+      duration: 700,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.inOut',
@@ -187,16 +243,14 @@ class GameScene extends Phaser.Scene {
     const { px, py } = this._cellPixel(col, row);
     const cs = this._cellSize;
 
-    // Phaser spritesheet: 4 frames, each 64×80
     if (!this.textures.exists('finn')) return;
 
     this._finnSprite = this.add.sprite(px + cs/2, py + cs/2, 'finn', 0);
     const scale = (cs * 0.85) / 80;
     this._finnSprite.setScale(scale);
-    this._finnSprite.setAngle(this._dirToAngleDeg(dir));
     this._finnSprite.setDepth(10);
+    this._applyFinnDirection(dir);
 
-    // Walk animation (create once — skip if already registered)
     if (!this.anims.exists('walk')) {
       this.anims.create({
         key: 'walk',
@@ -205,6 +259,15 @@ class GameScene extends Phaser.Scene {
         repeat: -1,
       });
     }
+  }
+
+  // ── Direction helper (east-facing sprite) ─────────────────────────────────
+  // Sprite is drawn facing east at angle=0. Use flipX for west direction.
+  _applyFinnDirection(dir) {
+    if (!this._finnSprite) return;
+    const angles = { east: 0, south: 90, north: 270, west: 0 };
+    this._finnSprite.setAngle(angles[dir] !== undefined ? angles[dir] : 0);
+    this._finnSprite.setFlipX(dir === 'west');
   }
 
   // ── Movement API (called by executor) ─────────────────────────────────────
@@ -217,9 +280,8 @@ class GameScene extends Phaser.Scene {
     const targetY = py + cs/2;
     const duration = 380;
 
-    // Start walk animation
     this._finnSprite.play('walk');
-    this._finnSprite.setAngle(this._dirToAngleDeg(dir));
+    this._applyFinnDirection(dir);
 
     AudioEngine.playStep();
 
@@ -240,10 +302,8 @@ class GameScene extends Phaser.Scene {
   _turnFinn(dir, onDone) {
     if (!this._finnSprite) { if (onDone) onDone(); return; }
 
-    const targetAngle = this._dirToAngleDeg(dir);
     AudioEngine.playTurn();
 
-    // Quick scale pulse for turn feedback
     this.tweens.add({
       targets: this._finnSprite,
       scaleX: this._finnSprite.scaleX * 1.2,
@@ -252,7 +312,7 @@ class GameScene extends Phaser.Scene {
       yoyo: true,
       ease: 'Power2',
       onComplete: () => {
-        this._finnSprite.setAngle(targetAngle);
+        this._applyFinnDirection(dir);
         if (onDone) onDone();
       },
     });
@@ -273,7 +333,6 @@ class GameScene extends Phaser.Scene {
       onComplete: () => { this._finnSprite.x = origX; },
     });
 
-    // Red flash overlay
     const cs = this._cellSize;
     const flash = this.add.graphics();
     flash.fillStyle(0xFF4444, 0.4);
@@ -308,7 +367,6 @@ class GameScene extends Phaser.Scene {
     const obj = this._cellObjs[key];
     if (!obj) return;
 
-    // Burst animation then remove
     this.tweens.add({
       targets: obj,
       scaleX: 1.6,
@@ -319,13 +377,11 @@ class GameScene extends Phaser.Scene {
       onComplete: () => { obj.destroy(); delete this._cellObjs[key]; },
     });
 
-    // Sparkle particles
     const { px, py } = this._cellPixel(col, row);
     const cs = this._cellSize;
     const sparks = this.add.graphics();
     sparks.fillStyle(0xC8962E, 1);
     for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2;
       sparks.fillCircle(px + cs/2, py + cs/2, 4);
     }
     sparks.setDepth(11);
@@ -338,10 +394,9 @@ class GameScene extends Phaser.Scene {
   }
 
   _highlightTryLine() {
-    // Already done by the try-line cell; this adds an extra gold pulse
     this._levelDef.cells
       .filter(c => c.type === 'try-line' || c.type === 'reach-any')
-      .forEach(c => this._flashCell(c.col, c.row, '#C8962E'));
+      .forEach(c => this._flashCell(c.col, c.row, '#FFD700'));
   }
 
   _resetToStart() {
@@ -350,9 +405,111 @@ class GameScene extends Phaser.Scene {
     const { px, py } = this._cellPixel(startCol, startRow);
     const cs = this._cellSize;
     this._finnSprite.setPosition(px + cs/2, py + cs/2);
-    this._finnSprite.setAngle(this._dirToAngleDeg(startDir));
+    this._applyFinnDirection(startDir);
     this._finnSprite.setFrame(0);
     this._finnSprite.stop();
+  }
+
+  // ── Goal kick animation ───────────────────────────────────────────────────
+  // Animates a rugby ball arcing from Finn toward the nearest goal posts
+  _doGoalKick(onDone) {
+    if (!this._finnSprite || !this._levelDef) { if (onDone) onDone(); return; }
+
+    const cs    = this._cellSize;
+    const ox    = this._offsetX;
+    const oy    = this._offsetY;
+    const cols  = this._levelDef.grid.cols;
+    const rows  = this._levelDef.grid.rows;
+    const pitchH = rows * cs;
+    const pitchW = cols * cs;
+
+    // Kick toward the right-hand (east) goal posts
+    const postX = ox + pitchW;
+    const postY = oy + pitchH / 2 - cs * 0.1; // crossbar height
+
+    const startX = this._finnSprite.x;
+    const startY = this._finnSprite.y;
+
+    // Create a rugby ball graphic
+    const ball = this.add.graphics();
+    ball.setDepth(20);
+    this._drawBallGraphic(ball);
+    ball.setPosition(startX, startY);
+
+    // Step flash on Finn — kick pose
+    this.tweens.add({
+      targets: this._finnSprite,
+      y: this._finnSprite.y - 8,
+      duration: 120,
+      yoyo: true,
+      ease: 'Power2',
+    });
+
+    // Animate ball along parabolic arc toward posts
+    const duration = 1100;
+    const startTime = { t: 0 };
+
+    this.tweens.add({
+      targets: startTime,
+      t: 1,
+      duration,
+      ease: 'Linear',
+      onUpdate: (tween) => {
+        const p = tween.progress;
+        const x = startX + (postX - startX) * p;
+        const y = startY + (postY - startY) * p - Math.sin(p * Math.PI) * (pitchH * 0.55);
+        ball.setPosition(x, y);
+        ball.setAngle(p * 720);
+        ball.setScale(1 + p * 0.3); // grow as it arcs forward then shrinks
+      },
+      onComplete: () => {
+        // Flash goal posts yellow (success)
+        this._flashGoalPosts();
+        AudioEngine.playWhistle();
+
+        this.tweens.add({
+          targets: ball,
+          alpha: 0,
+          scaleX: 2,
+          scaleY: 2,
+          duration: 350,
+          ease: 'Power2',
+          onComplete: () => {
+            ball.destroy();
+            if (onDone) onDone();
+          },
+        });
+      },
+    });
+  }
+
+  _drawBallGraphic(g) {
+    g.clear();
+    g.fillStyle(0x8B4513, 1);
+    g.fillEllipse(0, 0, 18, 11);
+    g.lineStyle(1.5, 0xFFFFFF, 1);
+    g.beginPath(); g.moveTo(-5, 0); g.lineTo(5, 0); g.strokePath();
+    g.beginPath(); g.moveTo(0, -4); g.lineTo(0, 4); g.strokePath();
+  }
+
+  _flashGoalPosts() {
+    // Tween the post graphics to yellow and back
+    const pg = this._postGfx;
+    this.tweens.add({
+      targets: pg,
+      alpha: 0.3,
+      duration: 100,
+      yoyo: true,
+      repeat: 3,
+      onUpdate: (tween) => {
+        // Redraw in gold during flash
+        pg.setTint(0xFFD700);
+      },
+      onComplete: () => {
+        pg.clearTint();
+        pg.setAlpha(1);
+      },
+    });
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -361,9 +518,5 @@ class GameScene extends Phaser.Scene {
       px: this._offsetX + col * this._cellSize,
       py: this._offsetY + row * this._cellSize,
     };
-  }
-
-  _dirToAngleDeg(dir) {
-    return { north: 0, east: 90, south: 180, west: 270 }[dir] || 0;
   }
 }

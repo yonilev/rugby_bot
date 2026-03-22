@@ -16,7 +16,7 @@ class BootScene extends Phaser.Scene {
   }
 
   // ── Finn spritesheet (4 frames × 64×80 px) ───────────────────────────────
-  // Each frame is a simple Scotland rugby player character
+  // Side-view character facing EAST (right). Each frame is a running pose.
   _createFinnTexture() {
     const FRAME_W = 64;
     const FRAME_H = 80;
@@ -31,7 +31,6 @@ class BootScene extends Phaser.Scene {
       this._drawFinnFrame(ctx, f * FRAME_W, 0, FRAME_W, FRAME_H, f);
     }
 
-    // Add canvas as texture, then attach explicit frame data for the spritesheet
     this.textures.addCanvas('finn', canvas);
     const texture = this.textures.get('finn');
     for (let i = 0; i < FRAMES; i++) {
@@ -39,190 +38,207 @@ class BootScene extends Phaser.Scene {
     }
   }
 
+  // Side-view east-facing character. frame 0=neutral, 1=stride-A, 2=neutral, 3=stride-B
   _drawFinnFrame(ctx, ox, oy, w, h, frame) {
-    const cx = ox + w / 2;
-    const headY = oy + 16;
-    const bodyY = oy + 30;
+    // Centre-x slightly left to leave room for ball on the right
+    const cx = ox + w * 0.42;
 
-    // ── Head ──────────────────────────────────────────────────────────────
-    ctx.fillStyle = '#F4C080'; // skin tone
-    ctx.beginPath();
-    ctx.arc(cx, headY, 11, 0, Math.PI * 2);
-    ctx.fill();
+    // Running animation offsets
+    const legStride  = frame === 1 ? 10 : frame === 3 ? -10 : 0;
+    const armSwing   = frame === 1 ? -7 : frame === 3 ?   7 : 0;
 
-    // Hair (dark red — Finn's iconic red hair)
-    ctx.fillStyle = '#8B1A1A';
-    ctx.beginPath();
-    ctx.arc(cx, headY - 4, 9, Math.PI, 0);
-    ctx.fill();
-    // Fringe
-    ctx.fillRect(cx - 9, headY - 8, 18, 5);
+    // ── Legs (drawn behind body) ───────────────────────────────────────────
+    ctx.strokeStyle = '#003F7F';
+    ctx.lineWidth   = 7;
+    ctx.lineCap     = 'round';
 
-    // Eyes
-    ctx.fillStyle = '#1A1A2E';
-    ctx.beginPath();
-    ctx.arc(cx - 4, headY - 1, 2, 0, Math.PI * 2);
-    ctx.arc(cx + 4, headY - 1, 2, 0, Math.PI * 2);
-    ctx.fill();
+    const legsTopY = oy + 48;
 
-    // Smile
-    ctx.strokeStyle = '#1A1A2E';
-    ctx.lineWidth = 1.5;
+    // Back leg
     ctx.beginPath();
-    ctx.arc(cx, headY + 2, 4, 0.2, Math.PI - 0.2);
+    ctx.moveTo(cx - 3, legsTopY);
+    ctx.lineTo(cx - 3 + legStride * 0.4, legsTopY + 18);
     ctx.stroke();
 
-    // ── Jersey (Scotland blue) ────────────────────────────────────────────
-    ctx.fillStyle = '#0065BD';
-    // Body
+    // Front leg
     ctx.beginPath();
-    ctx.roundRect(cx - 12, bodyY, 24, 26, 4);
-    ctx.fill();
+    ctx.moveTo(cx + 3, legsTopY);
+    ctx.lineTo(cx + 3 - legStride * 0.4, legsTopY + 18);
+    ctx.stroke();
 
-    // White collar
+    // Socks
+    const bLegX = cx - 3 + legStride * 0.4;
+    const fLegX = cx + 3 - legStride * 0.4;
+    const legEndY = legsTopY + 18;
+
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
-    ctx.roundRect(cx - 6, bodyY, 12, 6, 3);
+    ctx.arc(bLegX, legEndY, 4, 0, Math.PI * 2);
+    ctx.arc(fLegX, legEndY, 4, 0, Math.PI * 2);
     ctx.fill();
+
+    // Navy hoop on socks
+    ctx.fillStyle = '#003F7F';
+    ctx.fillRect(bLegX - 4, legEndY - 2, 8, 3);
+    ctx.fillRect(fLegX - 4, legEndY - 2, 8, 3);
+
+    // Boots (angled eastward)
+    ctx.fillStyle = '#1A1A1A';
+    ctx.beginPath();
+    ctx.ellipse(bLegX + 5, legEndY + 5, 7, 4, 0.3, 0, Math.PI * 2);
+    ctx.ellipse(fLegX + 5, legEndY + 5, 7, 4, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // ── Shorts ────────────────────────────────────────────────────────────
+    ctx.fillStyle = '#003F7F';
+    ctx.beginPath();
+    ctx.roundRect(cx - 12, legsTopY - 4, 24, 11, 3);
+    ctx.fill();
+
+    // ── Jersey body (Scotland blue) ───────────────────────────────────────
+    const bodyY = oy + 28;
+    ctx.fillStyle = '#0065BD';
+    ctx.beginPath();
+    ctx.roundRect(cx - 12, bodyY, 24, 22, 4);
+    ctx.fill();
+
+    // White horizontal stripe across jersey
+    ctx.fillStyle = 'rgba(255,255,255,0.20)';
+    ctx.fillRect(cx - 12, bodyY + 8, 24, 4);
 
     // Jersey number "10"
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 9px "Segoe UI", Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('10', cx, bodyY + 18);
-
-    // Scotland flag band (white/navy diagonal stripe effect)
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    ctx.fillRect(cx - 12, bodyY + 8, 24, 3);
+    ctx.fillText('10', cx, bodyY + 15);
 
     // ── Arms ──────────────────────────────────────────────────────────────
-    const armSwing = frame === 1 ? -6 : frame === 3 ? 6 : 0;
     ctx.strokeStyle = '#0065BD';
-    ctx.lineWidth = 6;
-    ctx.lineCap = 'round';
+    ctx.lineWidth   = 6;
+    ctx.lineCap     = 'round';
 
-    // Left arm
+    // Back arm (behind body, extends leftward/west)
     ctx.beginPath();
-    ctx.moveTo(cx - 12, bodyY + 6);
-    ctx.lineTo(cx - 20, bodyY + 16 + armSwing);
+    ctx.moveTo(cx - 10, bodyY + 5);
+    ctx.lineTo(cx - 18, bodyY + 14 + armSwing);
     ctx.stroke();
 
-    // Right arm
+    // Front arm (extends rightward/east, toward ball)
     ctx.beginPath();
-    ctx.moveTo(cx + 12, bodyY + 6);
-    ctx.lineTo(cx + 20, bodyY + 16 - armSwing);
+    ctx.moveTo(cx + 10, bodyY + 5);
+    ctx.lineTo(cx + 20, bodyY + 14 - armSwing);
     ctx.stroke();
 
     // Hands
     ctx.fillStyle = '#F4C080';
     ctx.beginPath();
-    ctx.arc(cx - 20, bodyY + 16 + armSwing, 4, 0, Math.PI * 2);
-    ctx.arc(cx + 20, bodyY + 16 - armSwing, 4, 0, Math.PI * 2);
+    ctx.arc(cx - 18, bodyY + 14 + armSwing, 4, 0, Math.PI * 2);
+    ctx.arc(cx + 20, bodyY + 14 - armSwing, 4, 0, Math.PI * 2);
     ctx.fill();
 
-    // Rugby ball (in right hand, only frame 0 and 2)
+    // ── Rugby ball in front hand (frames 0 & 2) ───────────────────────────
     if (frame === 0 || frame === 2) {
-      const bx = cx + 20;
-      const by = bodyY + 14 - armSwing;
+      const bx = cx + 28;
+      const by = bodyY + 14 - armSwing - 1;
       ctx.fillStyle = '#8B4513';
       ctx.beginPath();
-      ctx.ellipse(bx + 6, by, 8, 5, -0.4, 0, Math.PI * 2);
+      ctx.ellipse(bx, by, 9, 5.5, 0.4, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = '#FFFFFF';
-      ctx.lineWidth = 1;
+      ctx.lineWidth   = 1.2;
       ctx.beginPath();
-      ctx.moveTo(bx + 6, by - 3);
-      ctx.lineTo(bx + 6, by + 3);
+      ctx.moveTo(bx - 5, by);
+      ctx.lineTo(bx + 5, by);
+      ctx.moveTo(bx, by - 3);
+      ctx.lineTo(bx, by + 3);
       ctx.stroke();
     }
 
-    // ── Shorts ────────────────────────────────────────────────────────────
-    ctx.fillStyle = '#003F7F';
-    ctx.fillRect(cx - 12, bodyY + 24, 24, 12);
+    // ── Head (side-view facing right/east) ────────────────────────────────
+    const headX = cx + 4;   // head slightly right of body centre (facing right)
+    const headY = oy + 14;
 
-    // ── Legs ──────────────────────────────────────────────────────────────
-    const legStride = frame === 0 ? 0 : frame === 1 ? 10 : frame === 2 ? 0 : -10;
-    ctx.strokeStyle = '#003F7F';
-    ctx.lineWidth = 7;
-    ctx.lineCap = 'round';
-
-    // Left leg
+    // Skin
+    ctx.fillStyle = '#F4C080';
     ctx.beginPath();
-    ctx.moveTo(cx - 6, bodyY + 36);
-    ctx.lineTo(cx - 6 - legStride * 0.4, bodyY + 54 + (legStride > 0 ? -legStride * 0.3 : legStride * 0.3));
-    ctx.stroke();
-
-    // Right leg
-    ctx.beginPath();
-    ctx.moveTo(cx + 6, bodyY + 36);
-    ctx.lineTo(cx + 6 + legStride * 0.4, bodyY + 54 + (legStride < 0 ? legStride * 0.3 : -legStride * 0.3));
-    ctx.stroke();
-
-    // Socks (white with navy hoops)
-    const lLegEndX = cx - 6 - legStride * 0.4;
-    const lLegEndY = bodyY + 54 + (legStride > 0 ? -legStride * 0.3 : legStride * 0.3);
-    const rLegEndX = cx + 6 + legStride * 0.4;
-    const rLegEndY = bodyY + 54 + (legStride < 0 ? legStride * 0.3 : -legStride * 0.3);
-
-    ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath();
-    ctx.arc(lLegEndX, lLegEndY + 2, 4, 0, Math.PI * 2);
-    ctx.arc(rLegEndX, rLegEndY + 2, 4, 0, Math.PI * 2);
+    ctx.arc(headX, headY, 11, 0, Math.PI * 2);
     ctx.fill();
 
-    // Boots
-    ctx.fillStyle = '#1A1A1A';
+    // Red hair (Finn's iconic colour)
+    ctx.fillStyle = '#8B1A1A';
     ctx.beginPath();
-    ctx.ellipse(lLegEndX + 1, lLegEndY + 5, 6, 4, 0.2, 0, Math.PI * 2);
-    ctx.ellipse(rLegEndX + 1, rLegEndY + 5, 6, 4, 0.2, 0, Math.PI * 2);
+    ctx.arc(headX - 2, headY - 4, 10, Math.PI, 2 * Math.PI);
+    ctx.fill();
+    ctx.fillRect(headX - 11, headY - 8, 20, 5);
+
+    // Eye (on right/east side of face)
+    ctx.fillStyle = '#1A1A2E';
+    ctx.beginPath();
+    ctx.arc(headX + 6, headY, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+    // Eyebrow
+    ctx.strokeStyle = '#5A1A1A';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(headX + 3, headY - 4);
+    ctx.lineTo(headX + 9, headY - 3);
+    ctx.stroke();
+
+    // Nose (small bump on right side)
+    ctx.fillStyle = '#D4904A';
+    ctx.beginPath();
+    ctx.arc(headX + 10, headY + 1, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Smile
+    ctx.strokeStyle = '#8B3A1A';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(headX + 5, headY + 4, 3.5, 0.2, Math.PI - 0.2);
+    ctx.stroke();
+
+    // White collar peek
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.roundRect(cx - 5, bodyY, 10, 5, 3);
     ctx.fill();
   }
 
-  // ── Cell textures (obstacles, waypoints, try-line, mud) ──────────────────
+  // ── Cell textures (obstacles, waypoints, mud) ─────────────────────────────
   _createCellTextures() {
     const SIZE = 64;
 
-    // Obstacle — opposing player silhouette (red jersey)
     const obsCanvas = document.createElement('canvas');
     obsCanvas.width = obsCanvas.height = SIZE;
-    const obsCtx = obsCanvas.getContext('2d');
-    this._drawObstacle(obsCtx, SIZE);
+    this._drawObstacle(obsCanvas.getContext('2d'), SIZE);
     this.textures.addCanvas('obstacle', obsCanvas);
 
-    // Waypoint — bouncing rugby ball
     const wpCanvas = document.createElement('canvas');
     wpCanvas.width = wpCanvas.height = SIZE;
-    const wpCtx = wpCanvas.getContext('2d');
-    this._drawWaypoint(wpCtx, SIZE);
+    this._drawWaypoint(wpCanvas.getContext('2d'), SIZE);
     this.textures.addCanvas('waypoint', wpCanvas);
 
-    // Mud
     const mudCanvas = document.createElement('canvas');
     mudCanvas.width = mudCanvas.height = SIZE;
-    const mudCtx = mudCanvas.getContext('2d');
-    this._drawMud(mudCtx, SIZE);
+    this._drawMud(mudCanvas.getContext('2d'), SIZE);
     this.textures.addCanvas('mud', mudCanvas);
   }
 
   _drawObstacle(ctx, size) {
     const cx = size / 2, cy = size / 2;
-    // Shadow
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.beginPath();
     ctx.ellipse(cx, size - 6, 18, 6, 0, 0, Math.PI * 2);
     ctx.fill();
-    // Red jersey player silhouette
     ctx.fillStyle = '#CC2222';
     ctx.beginPath();
     ctx.roundRect(cx - 10, cy - 4, 20, 20, 4);
     ctx.fill();
-    // Head
     ctx.fillStyle = '#F4C080';
     ctx.beginPath();
     ctx.arc(cx, cy - 10, 9, 0, Math.PI * 2);
     ctx.fill();
-    // X eyes (defeated pose)
     ctx.strokeStyle = '#CC2222';
     ctx.lineWidth = 2;
     [-3, 3].forEach(dx => {
@@ -233,7 +249,6 @@ class BootScene extends Phaser.Scene {
       ctx.lineTo(cx + dx - 2, cy - 9);
       ctx.stroke();
     });
-    // Warning outline
     ctx.strokeStyle = 'rgba(255,80,80,0.6)';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -243,19 +258,15 @@ class BootScene extends Phaser.Scene {
 
   _drawWaypoint(ctx, size) {
     const cx = size / 2, cy = size / 2;
-    // Glow
     const grd = ctx.createRadialGradient(cx, cy, 4, cx, cy, 24);
     grd.addColorStop(0, 'rgba(200,150,46,0.6)');
     grd.addColorStop(1, 'rgba(200,150,46,0)');
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, size, size);
-
-    // Rugby ball
     ctx.fillStyle = '#8B4513';
     ctx.beginPath();
     ctx.ellipse(cx, cy, 16, 10, 0, 0, Math.PI * 2);
     ctx.fill();
-    // Lace
     ctx.strokeStyle = '#FFFFFF';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -266,8 +277,6 @@ class BootScene extends Phaser.Scene {
     ctx.moveTo(cx - 4, cy + 3);
     ctx.lineTo(cx + 4, cy + 3);
     ctx.stroke();
-    // Gold star above
-    ctx.fillStyle = 'var(--scotland-gold, #C8962E)';
     this._drawStar(ctx, cx, cy - 22, 8);
   }
 
@@ -289,19 +298,16 @@ class BootScene extends Phaser.Scene {
 
   _drawMud(ctx, size) {
     const cx = size / 2, cy = size / 2;
-    // Brown mud patch
     ctx.fillStyle = 'rgba(101,67,33,0.75)';
     ctx.beginPath();
     ctx.ellipse(cx, cy, 26, 18, 0, 0, Math.PI * 2);
     ctx.fill();
-    // Mud splat marks
     ctx.fillStyle = 'rgba(139,90,43,0.8)';
     [[cx-8,cy-5,4],[cx+6,cy+4,5],[cx-3,cy+8,3],[cx+10,cy-8,3]].forEach(([x,y,r]) => {
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fill();
     });
-    // Warning dashes
     ctx.strokeStyle = 'rgba(255,180,0,0.5)';
     ctx.lineWidth = 1.5;
     ctx.setLineDash([4, 4]);

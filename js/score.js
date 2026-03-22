@@ -1,4 +1,4 @@
-// js/score.js — Session score tracking and conversion kick math modal
+// js/score.js — Session score tracking, conversion kick modal, scoreboard
 
 const ScoreManager = (() => {
 
@@ -7,12 +7,21 @@ const ScoreManager = (() => {
     const levelDef = GameState.current.levelDef;
     GameState.mutations.addScore(5);
     GameState.mutations.completeLevel(levelDef.id);
+    GameState.mutations.recordTry();
+    updateHUD();
 
-    // Launch celebration in Phaser
+    // Launch celebration scene, then goal kick, then conversion modal
     if (window.RUGBY.phaserGame) {
       window.RUGBY.phaserGame.scene.launch('CelebrationScene', {
         points: 5,
-        onDone: () => _showConversionModal(),
+        onDone: () => {
+          // Goal kick animation happens inside the GameScene after celebration
+          if (window.RUGBY.gameScene) {
+            window.RUGBY.gameScene.api.doGoalKick(() => _showConversionModal());
+          } else {
+            _showConversionModal();
+          }
+        },
       });
     } else {
       setTimeout(() => _showConversionModal(), 800);
@@ -25,11 +34,8 @@ const ScoreManager = (() => {
     const groupId  = levelDef ? levelDef.groupId : 'movement';
     const q = Utils.generateMathQuestion(groupId);
 
-    // Store correct answer
     document.getElementById('conversion-answer').dataset.correct = q.answer;
     document.getElementById('conversion-answer').value = '';
-
-    // Update UI
     document.getElementById('conversion-question').textContent = q.question;
     document.querySelector('.conversion-result').textContent = '';
     document.querySelector('.conversion-result').className = 'conversion-result';
@@ -37,7 +43,6 @@ const ScoreManager = (() => {
     const modal = document.getElementById('modal-conversion');
     modal.classList.add('visible');
 
-    // Focus input
     setTimeout(() => {
       document.getElementById('conversion-answer').focus();
     }, 400);
@@ -58,32 +63,33 @@ const ScoreManager = (() => {
 
     if (given === correct) {
       GameState.mutations.addScore(2);
+      GameState.mutations.recordConversion();
       AudioEngine.playConversionGoal();
       result.textContent = '⚽ Conversion! +2 pts';
-      result.className = 'conversion-result success';
+      result.className   = 'conversion-result success';
       _showToast('+2 Conversion! 🎯', 'green');
     } else {
       AudioEngine.playMiss();
       result.textContent = `No good! The answer was ${correct}`;
-      result.className = 'conversion-result fail';
+      result.className   = 'conversion-result fail';
       _showToast('Missed! Better luck next time 😬', 'red');
     }
 
-    // Close modal and move to next level / level select after a pause
+    updateHUD();
+
+    // Close modal then advance
     setTimeout(() => {
       document.getElementById('modal-conversion').classList.remove('visible');
       document.getElementById('btn-conversion-submit').disabled = false;
 
       const nextLevel = getNextLevel(GameState.current.levelDef.id);
       if (nextLevel) {
-        // Brief pause then load next level
         setTimeout(() => {
           ScreenManager.showLevelSelect();
           AudioEngine.playLevelUnlock();
           _showToast('Next level unlocked! 🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'gold');
         }, 600);
       } else {
-        // All done!
         setTimeout(() => {
           ScreenManager.showLevelSelect();
           _showToast('🏆 All levels complete! Champion!', 'gold');
@@ -92,13 +98,24 @@ const ScoreManager = (() => {
     }, 2000);
   }
 
-  // ── Score HUD update ──────────────────────────────────────────────────────
+  // ── HUD / scoreboard update ───────────────────────────────────────────────
   function updateHUD() {
-    const el = document.getElementById('hud-score');
-    if (el) el.textContent = `🏉 ${GameState.session.totalScore} pts`;
+    const { totalScore, tries, conversions } = GameState.session;
+
+    const scoreEl = document.getElementById('hud-score');
+    if (scoreEl) scoreEl.textContent = `🏉 ${totalScore} pts`;
 
     const badge = document.getElementById('ls-score-badge');
-    if (badge) badge.textContent = `🏉 ${GameState.session.totalScore} pts`;
+    if (badge) badge.textContent = `🏉 ${totalScore} pts`;
+
+    const sbTries = document.getElementById('sb-tries');
+    if (sbTries) sbTries.textContent = tries;
+
+    const sbConv = document.getElementById('sb-conversions');
+    if (sbConv) sbConv.textContent = conversions;
+
+    const sbScore = document.getElementById('sb-score');
+    if (sbScore) sbScore.textContent = totalScore;
   }
 
   // ── Toast helper ──────────────────────────────────────────────────────────

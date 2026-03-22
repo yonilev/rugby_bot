@@ -1,5 +1,73 @@
 /* css/ui.css — Buttons, HUD, modals, toasts, overlays */
 
+/* ── Scoreboard ──────────────────────────────────────────────────────────── */
+#scoreboard {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--scotland-gold);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.sb-team {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-main);
+}
+
+.sb-opp {
+  opacity: 0.55;
+}
+
+.sb-name {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+}
+
+.sb-flag {
+  font-size: 1rem;
+}
+
+.sb-stat {
+  color: var(--text-dim);
+  font-size: 0.7rem;
+}
+
+.sb-stat span {
+  color: var(--text-main);
+  font-weight: 900;
+}
+
+.sb-pts {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: var(--scotland-gold);
+  min-width: 20px;
+  text-align: center;
+}
+
+.sb-opp .sb-pts {
+  color: var(--text-dim);
+  font-size: 1rem;
+}
+
+.sb-vs {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 0 4px;
+}
+
 /* ── Conversion kick modal ──────────────────────────────────────────────── */
 #modal-conversion {
   position: fixed;
