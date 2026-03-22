@@ -10,11 +10,9 @@ const ScoreManager = (() => {
     GameState.mutations.recordTry();
     updateHUD();
 
-    // Celebrate directly inside the running GameScene (no scene.launch needed)
+    // Celebrate, then show math question — the kick comes after the answer
     if (window.RUGBY.gameScene) {
-      window.RUGBY.gameScene.api.celebrate(5, () => {
-        window.RUGBY.gameScene.api.doGoalKick(() => _showConversionModal());
-      });
+      window.RUGBY.gameScene.api.celebrate(5, () => _showConversionModal());
     } else {
       setTimeout(() => _showConversionModal(), 800);
     }
@@ -44,50 +42,50 @@ const ScoreManager = (() => {
     const input   = document.getElementById('conversion-answer');
     const correct = parseInt(input.dataset.correct);
     const given   = parseInt(input.value);
-    const result  = document.querySelector('.conversion-result');
 
     if (isNaN(given)) {
       input.focus();
       return;
     }
 
+    const isCorrect = given === correct;
     document.getElementById('btn-conversion-submit').disabled = true;
 
-    if (given === correct) {
-      GameState.mutations.addScore(2);
-      GameState.mutations.recordConversion();
-      AudioEngine.playConversionGoal();
-      result.textContent = '⚽ Conversion! +2 pts';
-      result.className   = 'conversion-result success';
-      _showToast('+2 Conversion! 🎯', 'green');
-    } else {
-      AudioEngine.playMiss();
-      result.textContent = `No good! The answer was ${correct}`;
-      result.className   = 'conversion-result fail';
-      _showToast('Missed! Better luck next time 😬', 'red');
-    }
-
-    updateHUD();
-
-    // Close modal then advance
+    // Close modal, then play kick — outcome reveals whether answer was right
     setTimeout(() => {
       document.getElementById('modal-conversion').classList.remove('visible');
       document.getElementById('btn-conversion-submit').disabled = false;
 
-      const nextLevel = getNextLevel(GameState.current.levelDef.id);
-      if (nextLevel) {
+      const afterKick = () => {
+        if (isCorrect) {
+          GameState.mutations.addScore(2);
+          GameState.mutations.recordConversion();
+          AudioEngine.playConversionGoal();
+          _showToast('+2 Conversion! 🎯', 'green');
+        } else {
+          AudioEngine.playMiss();
+          _showToast(`No good! The answer was ${correct} 😬`, 'red');
+        }
+        updateHUD();
+
+        const nextLevel = getNextLevel(GameState.current.levelDef.id);
         setTimeout(() => {
           ScreenManager.showLevelSelect();
-          AudioEngine.playLevelUnlock();
-          _showToast('Next level unlocked! 🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'gold');
-        }, 600);
+          if (nextLevel) {
+            AudioEngine.playLevelUnlock();
+            _showToast('Next level unlocked! 🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'gold');
+          } else {
+            _showToast('🏆 All levels complete! Champion!', 'gold');
+          }
+        }, 800);
+      };
+
+      if (window.RUGBY.gameScene) {
+        window.RUGBY.gameScene.api.doGoalKick(isCorrect, afterKick);
       } else {
-        setTimeout(() => {
-          ScreenManager.showLevelSelect();
-          _showToast('🏆 All levels complete! Champion!', 'gold');
-        }, 600);
+        afterKick();
       }
-    }, 2000);
+    }, 400);
   }
 
   // ── HUD / scoreboard update ───────────────────────────────────────────────

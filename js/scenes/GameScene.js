@@ -25,7 +25,7 @@ class GameScene extends Phaser.Scene {
       collectWaypoint: (col, row) => this._collectWaypoint(col, row),
       highlightTryLine: () => this._highlightTryLine(),
       resetToStart:    () => this._resetToStart(),
-      doGoalKick:      (onDone) => this._doGoalKick(onDone),
+      doGoalKick:      (isCorrect, onDone) => this._doGoalKick(isCorrect, onDone),
       celebrate:       (points, onDone) => this._celebrate(points, onDone),
     };
   }
@@ -427,8 +427,9 @@ class GameScene extends Phaser.Scene {
   }
 
   // ── Goal kick animation ───────────────────────────────────────────────────
-  // Shows Finn in kick pose, ball launches from foot and arcs to goal posts
-  _doGoalKick(onDone) {
+  // isCorrect=true: ball arcs through posts and they flash
+  // isCorrect=false: ball veers wide, no flash
+  _doGoalKick(isCorrect, onDone) {
     if (!this._finnSprite || !this._levelDef) { if (onDone) onDone(); return; }
 
     const cs     = this._cellSize;
@@ -442,6 +443,10 @@ class GameScene extends Phaser.Scene {
     // Goal posts are always to the east
     const postX = ox + pitchW;
     const postY = oy + pitchH / 2 - cs * 0.05;
+
+    // For a miss, aim wide — well below the crossbar
+    const targetX = isCorrect ? postX : postX + cs * 0.4;
+    const targetY = isCorrect ? postY : postY + cs * 1.8;
 
     // Face east and stop walking
     this._finnSprite.stop();
@@ -487,15 +492,17 @@ class GameScene extends Phaser.Scene {
             ease: 'Linear',
             onUpdate: (tween) => {
               const p = tween.progress;
-              const x = footX + (postX - footX) * p;
-              const y = footY + (postY - footY) * p - Math.sin(p * Math.PI) * (pitchH * 0.55);
+              const x = footX + (targetX - footX) * p;
+              const y = footY + (targetY - footY) * p - Math.sin(p * Math.PI) * (pitchH * 0.55);
               ball.setPosition(x, y);
               ball.setAngle(p * 720);
               ball.setScale(Math.max(0.5, 2 - p * 1.5)); // shrinks as it travels away
             },
             onComplete: () => {
-              this._flashGoalPosts();
-              AudioEngine.playWhistle();
+              if (isCorrect) {
+                this._flashGoalPosts();
+                AudioEngine.playWhistle();
+              }
               this._finnSprite.setFrame(0); // back to neutral stance
 
               this.tweens.add({
