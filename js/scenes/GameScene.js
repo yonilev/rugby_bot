@@ -92,11 +92,14 @@ class GameScene extends Phaser.Scene {
       g.fillRect(ox, oy + r * cs, pitchW, cs);
     }
 
-    // ── In-goal areas (left and right end-zones, lighter green) ──────────
+    // ── In-goal areas (left and right end-zones, distinct olive-green stripes) ──
     const inGoalW = cs;  // 1 cell deep
-    g.fillStyle(0x1B5E20, 0.6);
-    g.fillRect(ox, oy, inGoalW, pitchH);                        // left
-    g.fillRect(ox + pitchW - inGoalW, oy, inGoalW, pitchH);     // right
+    for (let r = 0; r < rows; r++) {
+      const color = r % 2 === 0 ? 0x4A7C1F : 0x5A9225;
+      g.fillStyle(color, 1);
+      g.fillRect(ox,                    oy + r * cs, inGoalW, cs); // left
+      g.fillRect(ox + pitchW - inGoalW, oy + r * cs, inGoalW, cs); // right
+    }
 
     // ── Centre circle ─────────────────────────────────────────────────────
     g.lineStyle(2, 0xFFFFFF, 0.25);
@@ -118,11 +121,6 @@ class GameScene extends Phaser.Scene {
     // ── Halfway line ──────────────────────────────────────────────────────
     g.lineStyle(2, 0xFFFFFF, 0.4);
     g.beginPath(); g.moveTo(midX, oy); g.lineTo(midX, oy + pitchH); g.strokePath();
-
-    // ── Try lines (solid white, at edge of in-goal areas) ─────────────────
-    g.lineStyle(3, 0xFFFFFF, 0.9);
-    g.beginPath(); g.moveTo(ox + inGoalW, oy); g.lineTo(ox + inGoalW, oy + pitchH); g.strokePath();
-    g.beginPath(); g.moveTo(ox + pitchW - inGoalW, oy); g.lineTo(ox + pitchW - inGoalW, oy + pitchH); g.strokePath();
 
     // ── Grid lines (inner, very faint) ────────────────────────────────────
     g.lineStyle(1, 0xFFFFFF, 0.08);
