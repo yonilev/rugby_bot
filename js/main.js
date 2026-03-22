@@ -47,12 +47,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btn-reset').addEventListener('click', () => {
     Executor.stop();
+    GameState.mutations.clearSequence();
     GameState.mutations.resetFinn();
     if (window.RUGBY.gameScene) {
       window.RUGBY.gameScene.api.resetToStart();
     }
-    // Re-render tray (keeps sequence, resets Finn only)
-    BlockSystem.renderTray();
   });
 
   document.getElementById('btn-hint').addEventListener('click', () => {
