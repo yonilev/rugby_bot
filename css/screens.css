@@ -235,11 +235,6 @@
   filter: grayscale(0.5);
 }
 
-.level-card.completed .level-card-num::after {
-  content: ' ✓';
-  color: #4CAF50;
-  font-size: 0.8em;
-}
 
 .level-card-num {
   font-size: 0.75rem;
@@ -271,11 +266,10 @@
   opacity: 0.5;
 }
 
-.level-card.completed::after {
-  content: '✓';
-  position: absolute;
-  top: 8px; right: 10px;
-  font-size: 1rem;
-  color: #4CAF50;
-  font-weight: 900;
+.level-card-stars {
+  margin-top: auto;
+  padding-top: 8px;
+  font-size: 1.1rem;
+  letter-spacing: 2px;
+  color: var(--scotland-gold);
 }

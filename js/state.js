@@ -8,6 +8,7 @@ const GameState = (() => {
     session: {
       totalScore: 0,
       completedLevelIds: [],  // string[]
+      levelStars: {},         // { [levelId]: 1 | 2 }
       tries: 0,
       conversions: 0,
     },
@@ -58,6 +59,7 @@ const GameState = (() => {
         const saved = JSON.parse(raw);
         state.session.totalScore = saved.totalScore || 0;
         state.session.completedLevelIds = saved.completedLevelIds || [];
+        state.session.levelStars = saved.levelStars || {};
         state.session.tries = saved.tries || 0;
         state.session.conversions = saved.conversions || 0;
       }
@@ -172,6 +174,15 @@ const GameState = (() => {
         saveSession();
       }
       dispatch('levelComplete', { levelId });
+    },
+
+    addLevelStar(levelId) {
+      const current = state.session.levelStars[levelId] || 0;
+      if (current < 3) {
+        state.session.levelStars[levelId] = current + 1;
+        saveSession();
+        dispatch('stars', { levelId, stars: current + 1 });
+      }
     },
   };
 

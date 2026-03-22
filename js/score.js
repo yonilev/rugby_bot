@@ -7,6 +7,7 @@ const ScoreManager = (() => {
     const levelDef = GameState.current.levelDef;
     GameState.mutations.addScore(5);
     GameState.mutations.completeLevel(levelDef.id);
+    GameState.mutations.addLevelStar(levelDef.id);
     GameState.mutations.recordTry();
     updateHUD();
 
@@ -60,6 +61,7 @@ const ScoreManager = (() => {
         if (isCorrect) {
           GameState.mutations.addScore(2);
           GameState.mutations.recordConversion();
+          GameState.mutations.addLevelStar(GameState.current.levelDef.id);
           AudioEngine.playConversionGoal();
           _showToast('+2 Conversion! 🎯', 'green');
         } else {

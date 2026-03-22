@@ -58,16 +58,22 @@ const ScreenManager = (() => {
           completed.includes(group.levels[levelIdx - 1].id)
         );
         const isLocked = !isAvailable;
+        const stars = GameState.session.levelStars[level.id] || 0;
 
         const card = document.createElement('div');
         card.className = `level-card${isLocked ? ' locked' : ''}${isCompleted ? ' completed' : ''}`;
         card.style.setProperty('--card-color', group.color);
+
+        const starsHtml = isCompleted
+          ? `<div class="level-card-stars">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</div>`
+          : '';
 
         card.innerHTML = `
           <div class="level-card-num">Level ${levelIdx + 1}</div>
           <div class="level-card-title">${level.title}</div>
           <div class="level-card-desc">${level.description}</div>
           ${isLocked ? '<div class="level-card-lock">🔒</div>' : ''}
+          ${starsHtml}
         `;
 
         if (!isLocked) {
