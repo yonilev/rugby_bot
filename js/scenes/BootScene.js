@@ -340,7 +340,13 @@ class BootScene extends Phaser.Scene {
   }
 
   _drawOpponentPlayer(ctx, size) {
-    const cx = size / 2, cy = size / 2 + 2;
+    // Side-view defender facing WEST (left) — mirror of Finn's silhouette.
+    const cx       = 32;
+    const headX    = cx - 4;   // head shifted west (toward face direction)
+    const headY    = 11;
+    const bodyY    = 22;
+    const legsTopY = 38;
+    const legEndY  = legsTopY + 13;
 
     // Shadow
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
@@ -348,67 +354,104 @@ class BootScene extends Phaser.Scene {
     ctx.ellipse(cx, size - 4, 20, 5, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Legs
-    ctx.strokeStyle = '#1A1A1A';
-    ctx.lineWidth = 6;
-    ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(cx - 5, cy + 8); ctx.lineTo(cx - 8, cy + 18); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(cx + 5, cy + 8); ctx.lineTo(cx + 8, cy + 18); ctx.stroke();
+    // ── Legs ──────────────────────────────────────────────────────────────
+    ctx.strokeStyle = '#660000';
+    ctx.lineWidth   = 6;
+    ctx.lineCap     = 'round';
 
-    // Boots
+    const bLegX = cx + 3;   // back leg (east side for westward-facer)
+    const fLegX = cx - 3;   // front leg (west side)
+
+    ctx.beginPath(); ctx.moveTo(bLegX, legsTopY); ctx.lineTo(bLegX, legEndY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(fLegX, legsTopY); ctx.lineTo(fLegX, legEndY); ctx.stroke();
+
+    // Socks
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(bLegX, legEndY, 3.5, 0, Math.PI * 2);
+    ctx.arc(fLegX, legEndY, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Red hoop on socks
+    ctx.fillStyle = '#CC0000';
+    ctx.fillRect(bLegX - 3.5, legEndY - 2, 7, 2.5);
+    ctx.fillRect(fLegX - 3.5, legEndY - 2, 7, 2.5);
+
+    // Boots (angled westward)
     ctx.fillStyle = '#1A1A1A';
-    ctx.beginPath(); ctx.ellipse(cx - 7, cy + 21, 6, 3.5, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(cx + 7, cy + 21, 6, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(bLegX - 5, legEndY + 4, 6, 3.5, -0.3, 0, Math.PI * 2);
+    ctx.ellipse(fLegX - 5, legEndY + 4, 6, 3.5, -0.3, 0, Math.PI * 2);
+    ctx.fill();
 
-    // Shorts (white)
+    // ── Shorts ────────────────────────────────────────────────────────────
+    ctx.fillStyle = '#660000';
+    ctx.beginPath();
+    ctx.roundRect(cx - 10, legsTopY - 3, 20, 9, 3);
+    ctx.fill();
+
+    // ── Jersey (red) ──────────────────────────────────────────────────────
+    ctx.fillStyle = '#CC0000';
+    ctx.beginPath();
+    ctx.roundRect(cx - 10, bodyY, 20, 18, 4);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(255,255,255,0.20)';
+    ctx.fillRect(cx - 10, bodyY + 7, 20, 3);
+
     ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath(); ctx.roundRect(cx - 11, cy + 4, 22, 10, 3); ctx.fill();
-
-    // Jersey (dark red / maroon)
-    ctx.fillStyle = '#8B0000';
-    ctx.beginPath(); ctx.roundRect(cx - 13, cy - 10, 26, 20, 4); ctx.fill();
-
-    // White chest stripe
-    ctx.fillStyle = 'rgba(255,255,255,0.22)';
-    ctx.fillRect(cx - 13, cy - 2, 26, 5);
-
-    // Jersey number
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 9px "Segoe UI", Arial';
+    ctx.font = 'bold 8px "Segoe UI", Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('7', cx, cy + 2);
+    ctx.fillText('7', cx, bodyY + 12);
 
-    // Arms spread wide (defensive stance)
-    ctx.strokeStyle = '#8B0000';
-    ctx.lineWidth = 7;
-    ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(cx - 13, cy - 4); ctx.lineTo(cx - 25, cy + 5); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(cx + 13, cy - 4); ctx.lineTo(cx + 25, cy + 5); ctx.stroke();
+    // ── Arms ──────────────────────────────────────────────────────────────
+    ctx.strokeStyle = '#CC0000';
+    ctx.lineWidth   = 5;
+    ctx.lineCap     = 'round';
+
+    // Back arm (extends east/right, behind body)
+    ctx.beginPath(); ctx.moveTo(cx + 8, bodyY + 4); ctx.lineTo(cx + 16, bodyY + 11); ctx.stroke();
+    // Front arm (extends west/left, toward Finn)
+    ctx.beginPath(); ctx.moveTo(cx - 8, bodyY + 4); ctx.lineTo(cx - 16, bodyY + 11); ctx.stroke();
 
     // Hands
     ctx.fillStyle = '#F4C080';
-    ctx.beginPath(); ctx.arc(cx - 25, cy + 5, 4.5, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(cx + 25, cy + 5, 4.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx + 16, bodyY + 11, 3.5, 0, Math.PI * 2);
+    ctx.arc(cx - 16, bodyY + 11, 3.5, 0, Math.PI * 2);
+    ctx.fill();
 
-    // Head
+    // ── Head (side-view facing west/left) ─────────────────────────────────
     ctx.fillStyle = '#F4C080';
-    ctx.beginPath(); ctx.arc(cx, cy - 18, 11, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(headX, headY, 10, 0, Math.PI * 2); ctx.fill();
 
-    // Hair (dark)
-    ctx.fillStyle = '#222222';
-    ctx.beginPath(); ctx.arc(cx, cy - 24, 10, Math.PI, 2 * Math.PI); ctx.fill();
-    ctx.fillRect(cx - 11, cy - 30, 22, 6);
+    // Dark brown hair
+    ctx.fillStyle = '#3D1A00';
+    ctx.beginPath(); ctx.arc(headX + 2, headY - 3, 9, Math.PI, 2 * Math.PI); ctx.fill();
+    ctx.fillRect(headX - 8, headY - 7, 18, 5);
 
-    // Eyes (stern)
-    ctx.fillStyle = '#222222';
-    ctx.beginPath(); ctx.arc(cx - 4, cy - 18, 2, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(cx + 4, cy - 18, 2, 0, Math.PI * 2); ctx.fill();
+    // Eye (on west/left side of face)
+    ctx.fillStyle = '#1A1A2E';
+    ctx.beginPath(); ctx.arc(headX - 5, headY, 2, 0, Math.PI * 2); ctx.fill();
+
+    // Stern eyebrow (angled down toward nose for a scowl)
+    ctx.strokeStyle = '#3D1A00';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(headX - 2, headY - 4); ctx.lineTo(headX - 8, headY - 2); ctx.stroke();
+
+    // Nose (on west/left side)
+    ctx.fillStyle = '#D4904A';
+    ctx.beginPath(); ctx.arc(headX - 9, headY + 1, 1.8, 0, Math.PI * 2); ctx.fill();
 
     // Frown
     ctx.strokeStyle = '#8B3A1A';
     ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.arc(cx, cy - 13, 3, Math.PI * 0.1, Math.PI * 0.9, true); ctx.stroke();
+    ctx.beginPath(); ctx.arc(headX - 4, headY + 5, 3, Math.PI * 0.1, Math.PI * 0.9, true); ctx.stroke();
+
+    // White collar
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath(); ctx.roundRect(cx - 4, bodyY, 8, 4, 3); ctx.fill();
 
     // Warning border
     ctx.strokeStyle = 'rgba(200,30,30,0.7)';
@@ -418,34 +461,7 @@ class BootScene extends Phaser.Scene {
   }
 
   _drawObstacle(ctx, size) {
-    const cx = size / 2, cy = size / 2;
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.beginPath();
-    ctx.ellipse(cx, size - 6, 18, 6, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#CC2222';
-    ctx.beginPath();
-    ctx.roundRect(cx - 10, cy - 4, 20, 20, 4);
-    ctx.fill();
-    ctx.fillStyle = '#F4C080';
-    ctx.beginPath();
-    ctx.arc(cx, cy - 10, 9, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#CC2222';
-    ctx.lineWidth = 2;
-    [-3, 3].forEach(dx => {
-      ctx.beginPath();
-      ctx.moveTo(cx + dx - 2, cy - 13);
-      ctx.lineTo(cx + dx + 2, cy - 9);
-      ctx.moveTo(cx + dx + 2, cy - 13);
-      ctx.lineTo(cx + dx - 2, cy - 9);
-      ctx.stroke();
-    });
-    ctx.strokeStyle = 'rgba(255,80,80,0.6)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(2, 2, size - 4, size - 4, 8);
-    ctx.stroke();
+    this._drawOpponentPlayer(ctx, size);
   }
 
   _drawWaypoint(ctx, size) {

@@ -29,8 +29,6 @@ const ScreenManager = (() => {
     const completed = GameState.session.completedLevelIds;
 
     GROUPS.forEach((group, groupIdx) => {
-      const unlocked = isGroupUnlocked(group.id, completed);
-
       const section = document.createElement('div');
       section.className = 'group-section';
 
@@ -43,7 +41,6 @@ const ScreenManager = (() => {
           <div class="group-title" style="color:${group.color}">${group.title}</div>
           <div class="group-desc">${group.description}</div>
         </div>
-        ${!unlocked ? `<div class="group-locked-badge">🔒 Complete previous group</div>` : ''}
       `;
       section.appendChild(header);
 
@@ -53,11 +50,7 @@ const ScreenManager = (() => {
 
       group.levels.forEach((level, levelIdx) => {
         const isCompleted = completed.includes(level.id);
-        const isAvailable = unlocked && (
-          levelIdx === 0 ||
-          completed.includes(group.levels[levelIdx - 1].id)
-        );
-        const isLocked = !isAvailable;
+        const isLocked = false;
         const stars = GameState.session.levelStars[level.id] || 0;
 
         const card = document.createElement('div');
