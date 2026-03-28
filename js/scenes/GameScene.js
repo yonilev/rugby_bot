@@ -1076,42 +1076,171 @@ class GameScene extends Phaser.Scene {
     }
   }
 
-  // ── Score Try animation (Finn grounds the ball) ───────────────────────────
+  // ── Score Try animation (Finn grounds the ball + celebration dance) ─────────
   _scoreTry(onDone) {
     if (!this._finnSprite) { if (onDone) onDone(); return; }
 
-    const baseScale = this._finnSprite.scaleX;
+    const finn = this._finnSprite;
+    const baseScale = finn.scaleX;
+    const origAngle = finn.angle;
+    const origY = finn.y;
 
-    // Finn crouches to ground the ball
+    // Ball graphic at Finn's feet
+    const ball = this.add.graphics();
+    this._drawBallGraphic(ball);
+    ball.setPosition(finn.x, finn.y + 32 * baseScale);
+    ball.setDepth(finn.depth - 1);
+
+    // Gold flash on the try-line cell
+    if (this._levelDef) {
+      const { finn: fs } = GameState.current;
+      this._flashCell(fs.col, fs.row, '#FFD700');
+    }
+
+    // Phase 1: Finn drives down and squashes ball into the turf
     this.tweens.add({
-      targets: this._finnSprite,
-      scaleY: baseScale * 0.55,
-      scaleX: baseScale * 1.1,
-      duration: 140,
-      ease: 'Power2.in',
+      targets: finn,
+      scaleY: baseScale * 0.38,
+      scaleX: baseScale * 1.25,
+      duration: 170,
+      ease: 'Power3.in',
       onComplete: () => {
-        // Brief hold
-        this.time.delayedCall(80, () => {
-          // Pop back up
+        this.tweens.add({
+          targets: ball,
+          scaleY: 0.08,
+          scaleX: 2.6,
+          duration: 90,
+          ease: 'Power3.in',
+        });
+        this.cameras.main.shake(130, 0.005);
+
+        this.time.delayedCall(200, () => {
+          // Ball stays pinned to turf then fades
           this.tweens.add({
-            targets: this._finnSprite,
-            scaleY: baseScale,
-            scaleX: baseScale,
-            duration: 160,
-            ease: 'Back.out(3)',
+            targets: ball,
+            alpha: 0,
+            scaleX: 3.5,
+            duration: 280,
+            ease: 'Power2',
+            onComplete: () => ball.destroy(),
+          });
+
+          // Finn springs back up with stretch overshoot
+          this.tweens.add({
+            targets: finn,
+            scaleY: baseScale * 1.3,
+            scaleX: baseScale * 0.78,
+            y: origY - 18 * baseScale,
+            duration: 180,
+            ease: 'Back.out(4)',
             onComplete: () => {
-              if (onDone) onDone();
+              this.tweens.add({
+                targets: finn,
+                scaleY: baseScale,
+                scaleX: baseScale,
+                y: origY,
+                duration: 110,
+                ease: 'Power2.out',
+                onComplete: () => _dance(),
+              });
             },
           });
         });
       },
     });
 
-    // Gold flash on the cell Finn is standing on
-    if (this._levelDef) {
-      const { finn } = GameState.current;
-      this._flashCell(finn.col, finn.row, '#FFD700');
-    }
+    // Phase 2: spin + flip celebration dance
+    const _dance = () => {
+      finn.setFrame(4); // arms-spread frame
+
+      const spawnSparkles = () => {
+        for (let i = 0; i < 10; i++) {
+          const sg = this.add.graphics().setDepth(finn.depth + 1);
+          sg.fillStyle([0xFFD700, 0xFFFFFF, 0x0065BD, 0xFF69B4][i % 4], 1);
+          i % 2 === 0 ? sg.fillCircle(0, 0, 4) : sg.fillRect(-3, -3, 6, 6);
+          sg.setPosition(finn.x + (Math.random() - 0.5) * 40 * baseScale, finn.y - 5 * baseScale);
+          sg.setAngle(Math.random() * 360);
+          const a = Math.random() * Math.PI * 2;
+          const spd = 30 + Math.random() * 45;
+          this.tweens.add({
+            targets: sg,
+            x: sg.x + Math.cos(a) * spd,
+            y: sg.y - 25 - Math.sin(Math.abs(a)) * spd,
+            alpha: 0,
+            angle: sg.angle + (Math.random() - 0.5) * 400,
+            duration: 460 + Math.random() * 180,
+            ease: 'Power2',
+            onComplete: () => sg.destroy(),
+          });
+        }
+      };
+
+      // Move 1: 360° spin jump
+      const doSpin = (done) => {
+        spawnSparkles();
+        // y arc up and back (yoyo)
+        this.tweens.add({
+          targets: finn,
+          y: origY - 34 * baseScale,
+          duration: 220,
+          ease: 'Power2.out',
+          yoyo: true,
+          onComplete: () => { finn.setAngle(origAngle); done(); },
+        });
+        // simultaneous full 360° rotation
+        this.tweens.add({
+          targets: finn,
+          angle: origAngle + 360,
+          duration: 440,
+          ease: 'Linear',
+        });
+      };
+
+      // Move 2: backflip — jump arc + scaleY collapses through 0 then back
+      const doFlip = (done) => {
+        spawnSparkles();
+        this.tweens.add({
+          targets: finn,
+          y: origY - 30 * baseScale,
+          duration: 200,
+          ease: 'Power2.out',
+          yoyo: true,
+          onComplete: done,
+        });
+        const flipObj = { t: 0 };
+        this.tweens.add({
+          targets: flipObj,
+          t: 1,
+          duration: 400,
+          ease: 'Linear',
+          onUpdate: () => {
+            const t = flipObj.t;
+            finn.scaleY = t < 0.5
+              ? baseScale * (1 - t * 2)
+              : baseScale * ((t - 0.5) * 2);
+          },
+          onComplete: () => { finn.scaleY = baseScale; },
+        });
+      };
+
+      doSpin(() => {
+        this.time.delayedCall(80, () => {
+          doFlip(() => {
+            this.time.delayedCall(60, () => {
+              this.tweens.add({
+                targets: finn,
+                angle: origAngle,
+                scaleX: baseScale,
+                scaleY: baseScale,
+                duration: 130,
+                ease: 'Power2',
+                onComplete: () => { finn.setFrame(0); if (onDone) onDone(); },
+              });
+            });
+          });
+        });
+      });
+    };
   }
 
   // ── Jump animation (arc from current pos to landing) ──────────────────────
