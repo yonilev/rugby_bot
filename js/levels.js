@@ -8,7 +8,7 @@
 //   description: string,
 //   grid: { cols, rows },
 //   cells: [{ col, row, type }],
-//     types: 'try-line' | 'obstacle' | 'waypoint' | 'mud' | 'hurdle' | 'opponent-player' | 'tackle-zone' | 'teammate-player'
+//     types: 'try-line' | 'obstacle' | 'waypoint' | 'mud' | 'hurdle' | 'opponent-player' | 'teammate-player'
 //   finn: { startCol, startRow, startDir },
 //     dir: 'north' | 'east' | 'south' | 'west'
 //   availableCommands: string[],

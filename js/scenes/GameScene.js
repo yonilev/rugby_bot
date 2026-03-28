@@ -564,7 +564,7 @@ class GameScene extends Phaser.Scene {
 
   _highlightTryLine() {
     this._levelDef.cells
-      .filter(c => c.type === 'try-line' || c.type === 'reach-any')
+      .filter(c => c.type === 'try-line')
       .forEach(c => this._flashCell(c.col, c.row, '#FFD700'));
   }
 
