@@ -187,6 +187,47 @@ const AudioEngine = (() => {
     } catch (e) {}
   }
 
+  // Jump whoosh — ascending then descending pitch arc
+  function playJump() {
+    try {
+      ensure();
+      const t = ctx.currentTime;
+      const g = gain(0.18, t, 0.45);
+      const o = ctx.createOscillator();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(300, t);
+      o.frequency.linearRampToValueAtTime(700, t + 0.2);
+      o.frequency.linearRampToValueAtTime(200, t + 0.45);
+      o.connect(g);
+      o.start(t);
+      o.stop(t + 0.45);
+    } catch (e) {}
+  }
+
+  // Tackle crunch — short sharp thud with a low rumble
+  function playTackle() {
+    try {
+      ensure();
+      const t = ctx.currentTime;
+      const g1 = gain(0.35, t, 0.2);
+      const g2 = gain(0.2, t, 0.35);
+      osc('sawtooth', 120, g1, t, 0.2);
+      osc('square', 60, g2, t, 0.35);
+    } catch (e) {}
+  }
+
+  // Score try — triumphant short fanfare
+  function playScoreTry() {
+    try {
+      ensure();
+      const t = ctx.currentTime;
+      [523, 659, 784, 1046].forEach((freq, i) => {
+        const g = gain(0.2, t + i * 0.07, 0.25);
+        osc('sine', freq, g, t + i * 0.07, 0.25);
+      });
+    } catch (e) {}
+  }
+
   return {
     ensure,
     playStep,
@@ -200,5 +241,8 @@ const AudioEngine = (() => {
     playLevelUnlock,
     playConversionGoal,
     playRunStart,
+    playJump,
+    playTackle,
+    playScoreTry,
   };
 })();

@@ -16,16 +16,19 @@ class GameScene extends Phaser.Scene {
 
     // Public API for executor.js and screens.js
     this.api = {
-      loadLevel:       (def) => this._loadLevel(def),
-      moveFinnTo:      (col, row, dir, onDone) => this._moveFinnTo(col, row, dir, onDone),
-      turnFinn:        (dir, onDone) => this._turnFinn(dir, onDone),
-      shakeError:      () => this._shakeError(),
-      flashCell:       (col, row, color) => this._flashCell(col, row, color),
-      collectWaypoint: (col, row) => this._collectWaypoint(col, row),
+      loadLevel:        (def) => this._loadLevel(def),
+      moveFinnTo:       (col, row, dir, onDone) => this._moveFinnTo(col, row, dir, onDone),
+      turnFinn:         (dir, onDone) => this._turnFinn(dir, onDone),
+      shakeError:       () => this._shakeError(),
+      flashCell:        (col, row, color) => this._flashCell(col, row, color),
+      collectWaypoint:  (col, row) => this._collectWaypoint(col, row),
       highlightTryLine: () => this._highlightTryLine(),
-      resetToStart:    () => this._resetToStart(),
-      doGoalKick:      (isCorrect, onDone) => this._doGoalKick(isCorrect, onDone),
-      celebrate:       (points, onDone) => this._celebrate(points, onDone),
+      resetToStart:     () => this._resetToStart(),
+      doGoalKick:       (isCorrect, onDone) => this._doGoalKick(isCorrect, onDone),
+      celebrate:        (points, onDone) => this._celebrate(points, onDone),
+      scoreTry:         (onDone) => this._scoreTry(onDone),
+      jumpFinn:         (col, row, dir, onDone) => this._jumpFinn(col, row, dir, onDone),
+      tackleOpponent:   (col, row, onDone) => this._tackleOpponent(col, row, onDone),
     };
   }
 
@@ -230,7 +233,55 @@ class GameScene extends Phaser.Scene {
         const img = this.add.image(px + cs/2, py + cs/2, 'mud');
         img.setDisplaySize(cs * 0.9, cs * 0.9);
         this._cellObjs[`${col},${row}`] = img;
+      } else if (type === 'hurdle') {
+        this._drawHurdleCell(col, row, px, py, cs);
       }
+    });
+  }
+
+  _drawHurdleCell(col, row, px, py, cs) {
+    const g = this.add.graphics();
+    const postW  = Math.max(4, cs * 0.07);
+    const postH  = cs * 0.55;
+    const barH   = Math.max(4, cs * 0.08);
+    const barY   = py + cs * 0.35;
+    const leftX  = px + cs * 0.18;
+    const rightX = px + cs * 0.82 - postW;
+
+    // Shadow
+    g.fillStyle(0x000000, 0.3);
+    g.fillRect(leftX + 2, py + cs * 0.42 + 2, postW, postH);
+    g.fillRect(rightX + 2, py + cs * 0.42 + 2, postW, postH);
+
+    // Posts
+    g.fillStyle(0xE86A1A, 1);
+    g.fillRect(leftX, py + cs * 0.42, postW, postH);
+    g.fillRect(rightX, py + cs * 0.42, postW, postH);
+
+    // Crossbar with stripes
+    g.fillStyle(0xFFFFFF, 1);
+    g.fillRect(leftX, barY, rightX - leftX + postW, barH);
+    g.fillStyle(0xE86A1A, 1);
+    const stripeW = (rightX - leftX + postW) / 6;
+    for (let i = 0; i < 6; i += 2) {
+      g.fillRect(leftX + i * stripeW, barY, stripeW, barH);
+    }
+
+    // Outer border of crossbar
+    g.lineStyle(1, 0xCC4400, 1);
+    g.strokeRect(leftX, barY, rightX - leftX + postW, barH);
+
+    g.setDepth(5);
+    this._cellObjs[`${col},${row}`] = g;
+
+    // Subtle idle pulse
+    this.tweens.add({
+      targets: g,
+      alpha: 0.75,
+      duration: 1100,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.inOut',
     });
   }
 
@@ -425,10 +476,19 @@ class GameScene extends Phaser.Scene {
 
   _resetToStart() {
     if (!this._levelDef || !this._finnSprite) return;
+
+    // Rebuild cell objects in case any were destroyed (e.g. tackled opponents)
+    Object.values(this._cellObjs).forEach(o => o.destroy());
+    Object.values(this._waypointGlow).forEach(o => o.destroy());
+    this._cellObjs = {};
+    this._waypointGlow = {};
+    this._drawCells(this._levelDef.cells);
+
     const { startCol, startRow, startDir } = this._levelDef.finn;
     const { px, py } = this._cellPixel(startCol, startRow);
     const cs = this._cellSize;
     this._finnSprite.setPosition(px + cs/2, py + cs/2);
+    this._finnSprite.setDepth(10);
     this._applyFinnDirection(startDir);
     this._finnSprite.setFrame(0);
     this._finnSprite.stop();
@@ -905,6 +965,136 @@ class GameScene extends Phaser.Scene {
         cg.fillStyle(HAIR[hi], 1);
         cg.fillRect(ox + pw + 2 - HEAD_R, fy - HEAD_R, HEAD_R * 2, HEAD_R);
       }
+    }
+  }
+
+  // ── Score Try animation (Finn grounds the ball) ───────────────────────────
+  _scoreTry(onDone) {
+    if (!this._finnSprite) { if (onDone) onDone(); return; }
+
+    const baseScale = this._finnSprite.scaleX;
+
+    // Finn crouches to ground the ball
+    this.tweens.add({
+      targets: this._finnSprite,
+      scaleY: baseScale * 0.55,
+      scaleX: baseScale * 1.1,
+      duration: 140,
+      ease: 'Power2.in',
+      onComplete: () => {
+        // Brief hold
+        this.time.delayedCall(80, () => {
+          // Pop back up
+          this.tweens.add({
+            targets: this._finnSprite,
+            scaleY: baseScale,
+            scaleX: baseScale,
+            duration: 160,
+            ease: 'Back.out(3)',
+            onComplete: () => {
+              if (onDone) onDone();
+            },
+          });
+        });
+      },
+    });
+
+    // Gold flash on the cell Finn is standing on
+    if (this._levelDef) {
+      const { finn } = GameState.current;
+      this._flashCell(finn.col, finn.row, '#FFD700');
+    }
+  }
+
+  // ── Jump animation (arc from current pos to landing) ──────────────────────
+  _jumpFinn(col, row, dir, onDone) {
+    if (!this._finnSprite) { if (onDone) onDone(); return; }
+
+    const { px: tx, py: ty } = this._cellPixel(col, row);
+    const cs = this._cellSize;
+    const targetX = tx + cs / 2;
+    const targetY = ty + cs / 2;
+    const startX  = this._finnSprite.x;
+    const startY  = this._finnSprite.y;
+    const arcHeight = cs * 1.4;
+    const duration  = 460;
+
+    this._applyFinnDirection(dir);
+
+    const progress = { t: 0 };
+    this.tweens.add({
+      targets: progress,
+      t: 1,
+      duration,
+      ease: 'Sine.inOut',
+      onUpdate: () => {
+        const p = progress.t;
+        this._finnSprite.x = startX + (targetX - startX) * p;
+        this._finnSprite.y = startY + (targetY - startY) * p - Math.sin(p * Math.PI) * arcHeight;
+        // Scale up at peak, back down on land
+        const peakScale = 1 + 0.25 * Math.sin(p * Math.PI);
+        const base = (cs * 0.85) / 80;
+        this._finnSprite.setScale(base * peakScale);
+      },
+      onComplete: () => {
+        // Snap to exact landing position and restore scale
+        this._finnSprite.setPosition(targetX, targetY);
+        const base = (cs * 0.85) / 80;
+        this._finnSprite.setScale(base);
+
+        // Landing squish
+        this.tweens.add({
+          targets: this._finnSprite,
+          scaleY: base * 0.75,
+          scaleX: base * 1.2,
+          duration: 60,
+          yoyo: true,
+          ease: 'Power2',
+          onComplete: () => {
+            this._finnSprite.setScale(base);
+            if (onDone) onDone();
+          },
+        });
+      },
+    });
+  }
+
+  // ── Tackle animation (opponent flashes red then disappears) ───────────────
+  _tackleOpponent(col, row, onDone) {
+    const key = `${col},${row}`;
+    const obj = this._cellObjs[key];
+
+    // Flash red on the cell
+    this._flashCell(col, row, '#FF2222');
+
+    if (obj) {
+      // Shake then scale out
+      const origX = obj.x;
+      this.tweens.add({
+        targets: obj,
+        x: origX + 8,
+        duration: 40,
+        yoyo: true,
+        repeat: 3,
+        ease: 'Power2',
+        onComplete: () => {
+          this.tweens.add({
+            targets: obj,
+            scaleX: 0,
+            scaleY: 0,
+            alpha: 0,
+            duration: 220,
+            ease: 'Back.in(2)',
+            onComplete: () => {
+              obj.destroy();
+              delete this._cellObjs[key];
+              if (onDone) onDone();
+            },
+          });
+        },
+      });
+    } else {
+      this.time.delayedCall(300, () => { if (onDone) onDone(); });
     }
   }
 

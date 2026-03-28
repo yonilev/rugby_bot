@@ -45,12 +45,25 @@ const BlockSystem = (() => {
       hasSlots: true, slots: ['body'],
       description: 'While the path ahead is clear, keep repeating the commands inside',
     },
+    'score-try': {
+      label: 'Score Try!', icon: '🏉', category: 'action',
+      description: 'Ground the ball to score a try — only works when Finn is in the try zone!',
+    },
+    'jump': {
+      label: 'Jump!', icon: '🦘', category: 'movement',
+      description: 'Jump over a hurdle — skips one cell ahead and lands 2 squares forward',
+    },
+    'tackle': {
+      label: 'Tackle!', icon: '💪', category: 'action',
+      description: 'Tackle the opponent directly ahead to clear the path',
+    },
   };
 
   const CATEGORY_CLASS = {
     movement:  'movement',
     condition: 'condition',
     loop:      'loop',
+    action:    'action',
   };
 
   // ── DOM references ────────────────────────────────────────────────────────
