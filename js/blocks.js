@@ -45,6 +45,11 @@ const BlockSystem = (() => {
       hasSlots: true, slots: ['body'],
       description: 'While the path ahead is clear, keep repeating the commands inside',
     },
+    'pass': {
+      label: 'Pass!', icon: '🏉', category: 'movement',
+      hasParam: true, paramDefault: 2, paramMin: 1, paramMax: 6,
+      description: 'Pass the ball to a teammate — set the strength (distance) to reach them!',
+    },
   };
 
   const CATEGORY_CLASS = {

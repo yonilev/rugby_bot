@@ -337,6 +337,11 @@ class BootScene extends Phaser.Scene {
     mudCanvas.width = mudCanvas.height = SIZE;
     this._drawMud(mudCanvas.getContext('2d'), SIZE);
     this.textures.addCanvas('mud', mudCanvas);
+
+    const teammateCanvas = document.createElement('canvas');
+    teammateCanvas.width = teammateCanvas.height = SIZE;
+    this._drawTeammatePlayer(teammateCanvas.getContext('2d'), SIZE);
+    this.textures.addCanvas('teammate-player', teammateCanvas);
   }
 
   _drawOpponentPlayer(ctx, size) {
@@ -523,5 +528,83 @@ class BootScene extends Phaser.Scene {
     ctx.roundRect(3, 3, size - 6, size - 6, 6);
     ctx.stroke();
     ctx.setLineDash([]);
+  }
+
+  _drawTeammatePlayer(ctx, size) {
+    const cx = size / 2, cy = size / 2 + 2;
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath();
+    ctx.ellipse(cx, size - 4, 20, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Legs
+    ctx.strokeStyle = '#003F7F';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx - 5, cy + 8); ctx.lineTo(cx - 8, cy + 18); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 5, cy + 8); ctx.lineTo(cx + 8, cy + 18); ctx.stroke();
+
+    // Boots
+    ctx.fillStyle = '#1A1A1A';
+    ctx.beginPath(); ctx.ellipse(cx - 7, cy + 21, 6, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + 7, cy + 21, 6, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+
+    // Shorts (navy)
+    ctx.fillStyle = '#003F7F';
+    ctx.beginPath(); ctx.roundRect(cx - 11, cy + 4, 22, 10, 3); ctx.fill();
+
+    // Jersey (Scotland blue with gold trim)
+    ctx.fillStyle = '#0065BD';
+    ctx.beginPath(); ctx.roundRect(cx - 13, cy - 10, 26, 20, 4); ctx.fill();
+
+    // Gold chest band
+    ctx.fillStyle = 'rgba(200,150,46,0.55)';
+    ctx.fillRect(cx - 13, cy - 2, 26, 5);
+
+    // Jersey number
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 9px "Segoe UI", Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('15', cx, cy + 2);
+
+    // Arms raised, ready to catch
+    ctx.strokeStyle = '#0065BD';
+    ctx.lineWidth = 7;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx - 13, cy - 4); ctx.lineTo(cx - 22, cy - 12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 13, cy - 4); ctx.lineTo(cx + 22, cy - 12); ctx.stroke();
+
+    // Hands
+    ctx.fillStyle = '#F4C080';
+    ctx.beginPath(); ctx.arc(cx - 22, cy - 12, 4.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 22, cy - 12, 4.5, 0, Math.PI * 2); ctx.fill();
+
+    // Head
+    ctx.fillStyle = '#F4C080';
+    ctx.beginPath(); ctx.arc(cx, cy - 18, 11, 0, Math.PI * 2); ctx.fill();
+
+    // Blonde hair
+    ctx.fillStyle = '#C8962E';
+    ctx.beginPath(); ctx.arc(cx, cy - 24, 10, Math.PI, 2 * Math.PI); ctx.fill();
+    ctx.fillRect(cx - 11, cy - 30, 22, 6);
+
+    // Eyes (friendly)
+    ctx.fillStyle = '#222222';
+    ctx.beginPath(); ctx.arc(cx - 4, cy - 18, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 4, cy - 18, 2, 0, Math.PI * 2); ctx.fill();
+
+    // Smile
+    ctx.strokeStyle = '#8B3A1A';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(cx, cy - 13, 3.5, 0.1, Math.PI - 0.1); ctx.stroke();
+
+    // Gold glow border
+    ctx.strokeStyle = 'rgba(200,150,46,0.75)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.roundRect(2, 2, size - 4, size - 4, 8); ctx.stroke();
   }
 }

@@ -26,6 +26,7 @@ class GameScene extends Phaser.Scene {
       resetToStart:    () => this._resetToStart(),
       doGoalKick:      (isCorrect, onDone) => this._doGoalKick(isCorrect, onDone),
       celebrate:       (points, onDone) => this._celebrate(points, onDone),
+      passTo:          (col, row, dir, onDone) => this._passTo(col, row, dir, onDone),
     };
   }
 
@@ -230,6 +231,19 @@ class GameScene extends Phaser.Scene {
         const img = this.add.image(px + cs/2, py + cs/2, 'mud');
         img.setDisplaySize(cs * 0.9, cs * 0.9);
         this._cellObjs[`${col},${row}`] = img;
+      } else if (type === 'teammate-player') {
+        const img = this.add.image(px + cs/2, py + cs/2, 'teammate-player');
+        img.setDisplaySize(cs * 0.82, cs * 0.82);
+        this._cellObjs[`${col},${row}`] = img;
+        // Gentle bounce — ready to receive
+        this.tweens.add({
+          targets: img,
+          y: img.y - 6,
+          duration: 600 + Math.random() * 200,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.inOut',
+        });
       }
     });
   }
@@ -337,6 +351,63 @@ class GameScene extends Phaser.Scene {
       ease: 'Power2',
       onComplete: () => {
         this._applyFinnDirection(dir);
+        if (onDone) onDone();
+      },
+    });
+  }
+
+  _passTo(col, row, dir, onDone) {
+    if (!this._finnSprite) { if (onDone) onDone(); return; }
+
+    const { px: targetPx, py: targetPy } = this._cellPixel(col, row);
+    const cs = this._cellSize;
+    const targetX = targetPx + cs / 2;
+    const targetY = targetPy + cs / 2;
+
+    // Animate Finn doing a pass (brief arm-out scale pulse)
+    this.tweens.add({
+      targets: this._finnSprite,
+      scaleX: this._finnSprite.scaleX * 1.15,
+      duration: 100,
+      yoyo: true,
+      ease: 'Power2',
+    });
+
+    // Launch a ball sprite from Finn's position
+    const ball = this.add.graphics();
+    ball.fillStyle(0x8B4513, 1);
+    ball.fillEllipse(0, 0, 14, 9);
+    ball.lineStyle(1.5, 0xFFFFFF, 1);
+    ball.strokeEllipse(0, 0, 14, 9);
+    ball.x = this._finnSprite.x;
+    ball.y = this._finnSprite.y;
+    ball.setDepth(15);
+
+    // Angle the ball toward the pass direction
+    const dirAngles = { north: -90, south: 90, east: 0, west: 180 };
+    ball.angle = dirAngles[dir] || 0;
+
+    AudioEngine.playStep(); // reuse step sound for now
+
+    this.tweens.add({
+      targets: ball,
+      x: targetX,
+      y: targetY,
+      duration: 350,
+      ease: 'Power1.inOut',
+      onComplete: () => {
+        // Flash the target cell
+        const flash = this.add.graphics();
+        flash.fillStyle(0xC8962E, 0.6);
+        flash.fillCircle(targetX, targetY, cs * 0.45);
+        flash.setDepth(14);
+        this.tweens.add({
+          targets: flash,
+          alpha: 0,
+          duration: 400,
+          onComplete: () => { flash.destroy(); },
+        });
+        ball.destroy();
         if (onDone) onDone();
       },
     });
