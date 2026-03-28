@@ -364,47 +364,70 @@ class GameScene extends Phaser.Scene {
     const targetX = targetPx + cs / 2;
     const targetY = targetPy + cs / 2;
 
-    // Animate Finn doing a pass (brief arm-out scale pulse)
+    // Turn Finn to face the pass direction, then throw
+    this._applyFinnDirection(dir);
     this.tweens.add({
       targets: this._finnSprite,
-      scaleX: this._finnSprite.scaleX * 1.15,
-      duration: 100,
+      scaleX: this._finnSprite.scaleX * 1.2,
+      scaleY: this._finnSprite.scaleY * 1.2,
+      duration: 120,
       yoyo: true,
       ease: 'Power2',
     });
 
-    // Launch a ball sprite from Finn's position
+    // Ball sprite
     const ball = this.add.graphics();
     ball.fillStyle(0x8B4513, 1);
-    ball.fillEllipse(0, 0, 14, 9);
+    ball.fillEllipse(0, 0, 16, 10);
     ball.lineStyle(1.5, 0xFFFFFF, 1);
-    ball.strokeEllipse(0, 0, 14, 9);
-    ball.x = this._finnSprite.x;
-    ball.y = this._finnSprite.y;
+    ball.strokeEllipse(0, 0, 16, 10);
+    const startX = this._finnSprite.x;
+    const startY = this._finnSprite.y;
+    ball.x = startX;
+    ball.y = startY;
     ball.setDepth(15);
 
-    // Angle the ball toward the pass direction
-    const dirAngles = { north: -90, south: 90, east: 0, west: 180 };
-    ball.angle = dirAngles[dir] || 0;
+    // Arc height proportional to distance
+    const dx = targetX - startX;
+    const dy = targetY - startY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const arcHeight = dist * 0.35;
 
-    AudioEngine.playStep(); // reuse step sound for now
+    // Perpendicular lift direction (always "up" in screen space for a nice arc)
+    // For horizontal passes use vertical arc, for vertical passes use horizontal arc
+    const isVertical = Math.abs(dy) > Math.abs(dx);
+    const arcObj = { t: 0 };
+
+    AudioEngine.playStep();
 
     this.tweens.add({
-      targets: ball,
-      x: targetX,
-      y: targetY,
-      duration: 350,
+      targets: arcObj,
+      t: 1,
+      duration: 420,
       ease: 'Power1.inOut',
+      onUpdate: () => {
+        const p = arcObj.t;
+        const arc = arcHeight * Math.sin(p * Math.PI);
+        ball.x = startX + dx * p + (isVertical ? arc : 0);
+        ball.y = startY + dy * p + (isVertical ? 0 : -arc);
+        ball.angle += 9; // spin
+      },
       onComplete: () => {
-        // Flash the target cell
+        ball.x = targetX;
+        ball.y = targetY;
+
+        // Catch flash on teammate cell
         const flash = this.add.graphics();
-        flash.fillStyle(0xC8962E, 0.6);
-        flash.fillCircle(targetX, targetY, cs * 0.45);
+        flash.fillStyle(0xC8962E, 0.7);
+        flash.fillCircle(targetX, targetY, cs * 0.48);
         flash.setDepth(14);
         this.tweens.add({
           targets: flash,
           alpha: 0,
-          duration: 400,
+          scaleX: 1.5,
+          scaleY: 1.5,
+          duration: 380,
+          ease: 'Power2',
           onComplete: () => { flash.destroy(); },
         });
         ball.destroy();

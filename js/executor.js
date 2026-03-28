@@ -230,9 +230,28 @@ const Executor = (() => {
   function _doPass(strength, onDone) {
     if (_stopped) return;
 
-    const { finn } = GameState.current;
-    // Pass goes to Finn's left (lateral, rugby-legal)
-    const passDir = Utils.rotateDir(finn.dir, 'left');
+    const { finn, levelDef } = GameState.current;
+
+    // Find the teammate in the level
+    const teammate = (levelDef.cells || []).find(c => c.type === 'teammate-player');
+    if (!teammate) {
+      _handleError('No teammate to pass to! 🏉');
+      return;
+    }
+
+    // Direction from Finn toward the teammate (must be same row or column)
+    const dc = teammate.col - finn.col;
+    const dr = teammate.row - finn.row;
+    let passDir;
+    if (dc === 0 && dr < 0)      passDir = 'north';
+    else if (dc === 0 && dr > 0) passDir = 'south';
+    else if (dr === 0 && dc > 0) passDir = 'east';
+    else if (dr === 0 && dc < 0) passDir = 'west';
+    else {
+      _handleError('Get in line with your teammate first! 🏉');
+      return;
+    }
+
     const delta = Utils.DIR_DELTA[passDir];
     const targetCol = finn.col + delta.dc * strength;
     const targetRow = finn.row + delta.dr * strength;
