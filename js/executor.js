@@ -143,6 +143,111 @@ const Executor = (() => {
         _doPass(node.param ?? 2, onDone);
         break;
 
+      case 'score-try': {
+        const { finn, levelDef, visitedWaypoints } = GameState.current;
+        const wc = levelDef.winCondition;
+        let onTarget = false;
+
+        if (wc.type === 'reach') {
+          onTarget = finn.col === wc.target.col && finn.row === wc.target.row;
+        } else if (wc.type === 'reach-any') {
+          onTarget = wc.targets.some(t => t.col === finn.col && t.row === finn.row);
+        } else if (wc.type === 'visit-waypoints-then-reach') {
+          const allCollected = wc.waypoints.every(wp =>
+            visitedWaypoints.some(v => v.col === wp.col && v.row === wp.row)
+          );
+          onTarget = allCollected && finn.col === wc.target.col && finn.row === wc.target.row;
+        }
+
+        if (!onTarget) {
+          _handleError('Not in the try zone! Run to the TRY line first. 🏉');
+          return;
+        }
+
+        AudioEngine.playScoreTry();
+        if (window.RUGBY.gameScene) {
+          window.RUGBY.gameScene.api.scoreTry(() => {
+            if (_stopped) return;
+            _triggerWin();
+          });
+        } else {
+          _triggerWin();
+        }
+        break;
+      }
+
+      case 'jump': {
+        const { finn, levelDef } = GameState.current;
+        const intermediate = Utils.moveForward(finn.col, finn.row, finn.dir);
+        const landing = Utils.moveForward(intermediate.col, intermediate.row, finn.dir);
+
+        if (!Utils.isInBounds(intermediate.col, intermediate.row, levelDef.grid.cols, levelDef.grid.rows)) {
+          _handleError('Nothing to jump over! 🚫');
+          return;
+        }
+        const midCell = _getCellAt(intermediate.col, intermediate.row);
+        if (!midCell || midCell.type !== 'hurdle') {
+          _handleError("No hurdle to jump! Jump only clears orange hurdles 🦘");
+          return;
+        }
+        if (!Utils.isInBounds(landing.col, landing.row, levelDef.grid.cols, levelDef.grid.rows)) {
+          _handleError('No room to land! 🚫');
+          return;
+        }
+        const landCell = _getCellAt(landing.col, landing.row);
+        if (landCell && (landCell.type === 'obstacle' || landCell.type === 'opponent-player' || landCell.type === 'hurdle' || landCell.type === 'mud')) {
+          _handleError("Can't land there! 🚫");
+          return;
+        }
+
+        GameState.mutations.updateFinn(landing.col, landing.row, finn.dir);
+
+        if (landCell && landCell.type === 'waypoint') {
+          const already = GameState.current.visitedWaypoints.some(
+            w => w.col === landing.col && w.row === landing.row
+          );
+          if (!already) {
+            GameState.mutations.markWaypointVisited(landing.col, landing.row);
+            if (window.RUGBY.gameScene) window.RUGBY.gameScene.api.collectWaypoint(landing.col, landing.row);
+          }
+        }
+
+        AudioEngine.playJump();
+        if (window.RUGBY.gameScene) {
+          window.RUGBY.gameScene.api.jumpFinn(landing.col, landing.row, finn.dir, () => {
+            if (_stopped) return;
+            onDone();
+          });
+        } else {
+          onDone();
+        }
+        break;
+      }
+
+      case 'tackle': {
+        const { finn } = GameState.current;
+        const ahead = Utils.moveForward(finn.col, finn.row, finn.dir);
+        const cellAhead = _getCellAt(ahead.col, ahead.row);
+
+        if (!cellAhead || cellAhead.type !== 'opponent-player') {
+          _handleError('No opponent to tackle! Move next to a player first. 💪');
+          return;
+        }
+
+        GameState.mutations.markCellCleared(ahead.col, ahead.row);
+        AudioEngine.playTackle();
+
+        if (window.RUGBY.gameScene) {
+          window.RUGBY.gameScene.api.tackleOpponent(ahead.col, ahead.row, () => {
+            if (_stopped) return;
+            onDone();
+          });
+        } else {
+          onDone();
+        }
+        break;
+      }
+
       default:
         onDone();
     }
@@ -164,7 +269,7 @@ const Executor = (() => {
       return;
     }
 
-    // Check obstacles and mud (mud blocks movement — use if-condition to detect and avoid it)
+    // Check obstacles, opponents, mud, and hurdles (hurdles need jump to clear)
     const cell = _getCellAt(newPos.col, newPos.row);
     if (cell && (cell.type === 'obstacle' || cell.type === 'opponent-player')) {
       _handleError('Tackled by an opponent! 🏉');
@@ -176,6 +281,10 @@ const Executor = (() => {
     }
     if (cell && cell.type === 'teammate-player') {
       _handleError("Use PASS to give the ball to your teammate! 🏉");
+      return;
+    }
+    if (cell && cell.type === 'hurdle') {
+      _handleError("Can't run through a hurdle — use Jump! 🦘");
       return;
     }
 
@@ -199,12 +308,9 @@ const Executor = (() => {
     if (window.RUGBY.gameScene) {
       window.RUGBY.gameScene.api.moveFinnTo(newPos.col, newPos.row, dir, () => {
         if (_stopped) return;
-        // Check win condition after animation
-        if (_checkWin(newPos.col, newPos.row)) return;
         onDone();
       });
     } else {
-      if (_checkWin(newPos.col, newPos.row)) return;
       onDone();
     }
   }
@@ -348,12 +454,14 @@ const Executor = (() => {
 
     const cell = _getCellAt(ahead.col, ahead.row);
     if (!cell) return false;
-    return cell.type === 'obstacle' || cell.type === 'opponent-player' || cell.type === 'mud' || cell.type === 'teammate-player';
+    return cell.type === 'obstacle' || cell.type === 'opponent-player' || cell.type === 'mud' || cell.type === 'teammate-player' || cell.type === 'hurdle';
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   function _getCellAt(col, row) {
     const cells = GameState.current.levelDef.cells || [];
+    const cleared = GameState.current.clearedCells || [];
+    if (cleared.some(cc => cc.col === col && cc.row === row)) return null;
     return cells.find(c => c.col === col && c.row === row) || null;
   }
 

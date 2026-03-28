@@ -95,6 +95,8 @@
 .block.condition { background: linear-gradient(135deg, #E63946, #B8202B); }
 /* Loop blocks */
 .block.loop { background: linear-gradient(135deg, #2A9D8F, #1D7268); }
+/* Action blocks (score-try, tackle) */
+.block.action { background: linear-gradient(135deg, #9B59B6, #6C3483); }
 
 /* Delete button inside sequence block */
 .block-delete {

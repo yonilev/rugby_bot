@@ -30,6 +30,9 @@ const GameState = (() => {
       // Which waypoints have been collected this run
       visitedWaypoints: [],  // [{col,row}]
 
+      // Cells cleared by tackle this run
+      clearedCells: [],      // [{col,row}]
+
       // Execution state (managed by executor.js)
       execution: {
         running: false,
@@ -77,6 +80,7 @@ const GameState = (() => {
       };
       state.current.sequence = [];
       state.current.visitedWaypoints = [];
+      state.current.clearedCells = [];
       state.current.execution = { running: false, stopped: false };
       dispatch('level', { levelDef });
     },
@@ -128,6 +132,11 @@ const GameState = (() => {
       dispatch('waypoint', { col, row });
     },
 
+    markCellCleared(col, row) {
+      state.current.clearedCells.push({ col, row });
+      dispatch('cellCleared', { col, row });
+    },
+
     setExecutionRunning(running) {
       state.current.execution.running = running;
       dispatch('execution', { running });
@@ -146,6 +155,7 @@ const GameState = (() => {
         dir: def.finn.startDir,
       };
       state.current.visitedWaypoints = [];
+      state.current.clearedCells = [];
       state.current.execution = { running: false, stopped: false };
       dispatch('finn');
     },
