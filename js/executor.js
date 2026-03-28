@@ -139,6 +139,10 @@ const Executor = (() => {
         break;
       }
 
+      case 'pass':
+        _doPass(node.param ?? 2, onDone);
+        break;
+
       default:
         onDone();
     }
@@ -168,6 +172,10 @@ const Executor = (() => {
     }
     if (cell && cell.type === 'mud') {
       _handleError('Too muddy! Use IF to avoid the mud. 🟫');
+      return;
+    }
+    if (cell && cell.type === 'teammate-player') {
+      _handleError("Use PASS to give the ball to your teammate! 🏉");
       return;
     }
 
@@ -215,6 +223,38 @@ const Executor = (() => {
       });
     } else {
       onDone();
+    }
+  }
+
+  // ── Pass ─────────────────────────────────────────────────────────────────
+  function _doPass(strength, onDone) {
+    if (_stopped) return;
+
+    const { finn } = GameState.current;
+    // Pass goes to Finn's left (lateral, rugby-legal)
+    const passDir = Utils.rotateDir(finn.dir, 'left');
+    const delta = Utils.DIR_DELTA[passDir];
+    const targetCol = finn.col + delta.dc * strength;
+    const targetRow = finn.row + delta.dr * strength;
+
+    const cell = _getCellAt(targetCol, targetRow);
+    const hasTeammate = cell && cell.type === 'teammate-player';
+
+    if (window.RUGBY.gameScene) {
+      window.RUGBY.gameScene.api.passTo(targetCol, targetRow, passDir, () => {
+        if (_stopped) return;
+        if (hasTeammate) {
+          _triggerWin();
+        } else {
+          _handleError('Pass missed! Adjust the strength. 🏉');
+        }
+      });
+    } else {
+      if (hasTeammate) {
+        _triggerWin();
+      } else {
+        _handleError('Pass missed! Adjust the strength. 🏉');
+      }
     }
   }
 
@@ -289,7 +329,7 @@ const Executor = (() => {
 
     const cell = _getCellAt(ahead.col, ahead.row);
     if (!cell) return false;
-    return cell.type === 'obstacle' || cell.type === 'opponent-player' || cell.type === 'mud';
+    return cell.type === 'obstacle' || cell.type === 'opponent-player' || cell.type === 'mud' || cell.type === 'teammate-player';
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

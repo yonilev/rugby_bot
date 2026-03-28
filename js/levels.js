@@ -8,7 +8,7 @@
 //   description: string,
 //   grid: { cols, rows },
 //   cells: [{ col, row, type }],
-//     types: 'try-line' | 'obstacle' | 'waypoint' | 'mud' | 'tackle-zone'
+//     types: 'try-line' | 'obstacle' | 'waypoint' | 'mud' | 'tackle-zone' | 'teammate-player'
 //   finn: { startCol, startRow, startDir },
 //     dir: 'north' | 'east' | 'south' | 'west'
 //   availableCommands: string[],
@@ -16,6 +16,7 @@
 //     type 'reach':                    { type:'reach', target:{col,row} }
 //     type 'visit-waypoints-then-reach': { type:'visit-waypoints-then-reach',
 //                                          waypoints:[{col,row}], target:{col,row} }
+//     type 'pass-to-teammate':            { type:'pass-to-teammate', teammate:{col,row} }
 //   maxCommands: number | null,
 //   hint: string,
 // }
@@ -478,6 +479,22 @@ const GROUPS = [
         },
         maxCommands: null,
         hint: 'Grab the ball first, dodge the defenders — an opponent blocks the top at col 7, so cut north after col 7, avoid col 9 row 1, and sprint to the corner!',
+      },
+      {
+        id: 'adv-7',
+        groupId: 'advanced',
+        title: 'The Perfect Pass',
+        description: "A teammate is calling for the ball! Run into position, then pass with the right strength to reach them.",
+        grid: { cols: 8, rows: 5 },
+        cells: [
+          { col: 3, row: 1, type: 'obstacle' },
+          { col: 5, row: 1, type: 'teammate-player' },
+        ],
+        finn: { startCol: 1, startRow: 3, startDir: 'east' },
+        availableCommands: ['move-forward', 'turn-left', 'turn-right', 'pass'],
+        winCondition: { type: 'pass-to-teammate', teammate: { col: 5, row: 1 } },
+        maxCommands: null,
+        hint: 'Move east to column 5 (same column as your teammate), then pass with strength 2 — they are 2 squares to the north!',
       },
     ],
   },
