@@ -30,6 +30,7 @@ class GameScene extends Phaser.Scene {
       scoreTry:         (onDone) => this._scoreTry(onDone),
       jumpFinn:         (col, row, dir, onDone) => this._jumpFinn(col, row, dir, onDone),
       tackleOpponent:   (col, row, onDone) => this._tackleOpponent(col, row, onDone),
+      pickupBall:       (col, row, onDone) => this._pickupBall(col, row, onDone),
     };
   }
 
@@ -249,6 +250,19 @@ class GameScene extends Phaser.Scene {
         });
       } else if (type === 'hurdle') {
         this._drawHurdleCell(col, row, px, py, cs);
+      } else if (type === 'ball') {
+        const img = this.add.image(px + cs/2, py + cs/2, 'ball');
+        img.setDisplaySize(cs * 0.7, cs * 0.7);
+        this._cellObjs[`${col},${row}`] = img;
+        this.tweens.add({
+          targets: img,
+          scaleX: img.scaleX * 1.1,
+          scaleY: img.scaleY * 1.1,
+          duration: 800,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.inOut',
+        });
       }
     });
   }
@@ -1189,6 +1203,33 @@ class GameScene extends Phaser.Scene {
       });
     } else {
       this.time.delayedCall(300, () => { if (onDone) onDone(); });
+    }
+  }
+
+  // ── Pickup ball animation (ball pops up and vanishes) ────────────────────
+  _pickupBall(col, row, onDone) {
+    const key = `${col},${row}`;
+    const obj = this._cellObjs[key];
+
+    this._flashCell(col, row, '#C8962E');
+
+    if (obj) {
+      this.tweens.add({
+        targets: obj,
+        y: obj.y - 32,
+        scaleX: obj.scaleX * 1.4,
+        scaleY: obj.scaleY * 1.4,
+        alpha: 0,
+        duration: 350,
+        ease: 'Power2',
+        onComplete: () => {
+          obj.destroy();
+          delete this._cellObjs[key];
+          if (onDone) onDone();
+        },
+      });
+    } else {
+      this.time.delayedCall(200, () => { if (onDone) onDone(); });
     }
   }
 

@@ -62,6 +62,10 @@ const BlockSystem = (() => {
       label: 'Tackle!', icon: '💪', category: 'action',
       description: 'Tackle the opponent directly ahead to clear the path',
     },
+    'pickup-ball': {
+      label: 'Pick Up Ball!', icon: '🏉', category: 'action',
+      description: "Pick up the ball from the ground — only works when Finn is standing on it!",
+    },
   };
 
   const CATEGORY_CLASS = {

@@ -342,6 +342,11 @@ class BootScene extends Phaser.Scene {
     teammateCanvas.width = teammateCanvas.height = SIZE;
     this._drawTeammatePlayer(teammateCanvas.getContext('2d'), SIZE);
     this.textures.addCanvas('teammate-player', teammateCanvas);
+
+    const ballCanvas = document.createElement('canvas');
+    ballCanvas.width = ballCanvas.height = SIZE;
+    this._drawLooseBall(ballCanvas.getContext('2d'), SIZE);
+    this.textures.addCanvas('ball', ballCanvas);
   }
 
   _drawOpponentPlayer(ctx, size) {
@@ -526,6 +531,64 @@ class BootScene extends Phaser.Scene {
     ctx.setLineDash([4, 4]);
     ctx.beginPath();
     ctx.roundRect(3, 3, size - 6, size - 6, 6);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  _drawLooseBall(ctx, size) {
+    const cx = size / 2, cy = size / 2 + 2;
+
+    // Ground glow
+    const grd = ctx.createRadialGradient(cx, cy, 4, cx, cy, 26);
+    grd.addColorStop(0, 'rgba(200,150,46,0.55)');
+    grd.addColorStop(1, 'rgba(200,150,46,0)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, size, size);
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(cx + 2, cy + 14, 14, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Ball body (slightly tilted)
+    ctx.fillStyle = '#8B4513';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 18, 11, 0.35, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.beginPath();
+    ctx.ellipse(cx - 4, cy - 3, 8, 4, 0.35, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Lace seam (along ball axis)
+    const angle = 0.35;
+    const cos = Math.cos(angle), sin = Math.sin(angle);
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx - 15 * cos, cy - 15 * sin);
+    ctx.lineTo(cx + 15 * cos, cy + 15 * sin);
+    ctx.stroke();
+
+    // Cross laces
+    for (let i = -1; i <= 1; i++) {
+      const lx = cx + i * 5 * cos;
+      const ly = cy + i * 5 * sin;
+      ctx.beginPath();
+      ctx.moveTo(lx - 4 * sin, ly + 4 * cos);
+      ctx.lineTo(lx + 4 * sin, ly - 4 * cos);
+      ctx.stroke();
+    }
+
+    // Gold dashed border
+    ctx.strokeStyle = 'rgba(200,150,46,0.75)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.roundRect(2, 2, size - 4, size - 4, 8);
     ctx.stroke();
     ctx.setLineDash([]);
   }

@@ -224,6 +224,30 @@ const Executor = (() => {
         break;
       }
 
+      case 'pickup-ball': {
+        const { finn } = GameState.current;
+        const ballCell = _getCellAt(finn.col, finn.row);
+
+        if (!ballCell || ballCell.type !== 'ball') {
+          _handleError("No ball here! Move Finn onto the ball first. 🏉");
+          return;
+        }
+
+        GameState.mutations.markCellCleared(finn.col, finn.row);
+        GameState.mutations.markWaypointVisited(finn.col, finn.row);
+        AudioEngine.playPickupBall();
+
+        if (window.RUGBY.gameScene) {
+          window.RUGBY.gameScene.api.pickupBall(finn.col, finn.row, () => {
+            if (_stopped) return;
+            onDone();
+          });
+        } else {
+          onDone();
+        }
+        break;
+      }
+
       case 'tackle': {
         const { finn } = GameState.current;
         const ahead = Utils.moveForward(finn.col, finn.row, finn.dir);

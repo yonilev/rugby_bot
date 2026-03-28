@@ -216,6 +216,24 @@ const AudioEngine = (() => {
     } catch (e) {}
   }
 
+  // Ball pickup — ascending swoop + soft thud
+  function playPickupBall() {
+    try {
+      ensure();
+      const t = ctx.currentTime;
+      const g = gain(0.18, t, 0.25);
+      const o = ctx.createOscillator();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(350, t);
+      o.frequency.linearRampToValueAtTime(750, t + 0.15);
+      o.connect(g);
+      o.start(t);
+      o.stop(t + 0.25);
+      const g2 = gain(0.12, t, 0.1);
+      osc('triangle', 180, g2, t, 0.1);
+    } catch (e) {}
+  }
+
   // Score try — triumphant short fanfare
   function playScoreTry() {
     try {
@@ -244,5 +262,6 @@ const AudioEngine = (() => {
     playJump,
     playTackle,
     playScoreTry,
+    playPickupBall,
   };
 })();
