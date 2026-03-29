@@ -389,21 +389,25 @@ const Executor = (() => {
     const cell = _getCellAt(targetCol, targetRow);
     const hasTeammate = cell && cell.type === 'teammate-player';
 
-    if (window.RUGBY.gameScene) {
-      window.RUGBY.gameScene.api.passTo(targetCol, targetRow, passDir, () => {
-        if (_stopped) return;
-        if (hasTeammate) {
-          _triggerWin();
-        } else {
-          _handleError('Pass missed! Adjust the strength. 🏉');
-        }
-      });
-    } else {
-      if (hasTeammate) {
+    function _onPassComplete() {
+      if (_stopped) return;
+      if (!hasTeammate) {
+        _handleError('Pass missed! Adjust the strength. 🏉');
+        return;
+      }
+      const wc = levelDef.winCondition;
+      if (wc.type === 'pass-to-teammate') {
         _triggerWin();
       } else {
-        _handleError('Pass missed! Adjust the strength. 🏉');
+        GameState.mutations.markWaypointVisited(teammate.col, teammate.row);
+        onDone();
       }
+    }
+
+    if (window.RUGBY.gameScene) {
+      window.RUGBY.gameScene.api.passTo(targetCol, targetRow, passDir, _onPassComplete);
+    } else {
+      _onPassComplete();
     }
   }
 
