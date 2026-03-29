@@ -296,7 +296,7 @@ const Executor = (() => {
     // Check obstacles, opponents, mud, and hurdles (hurdles need jump to clear)
     const cell = _getCellAt(newPos.col, newPos.row);
     if (cell && (cell.type === 'obstacle' || cell.type === 'opponent-player')) {
-      _handleError('Tackled by an opponent! 🏉');
+      _handleError('Tackled by an opponent! 🏉', 'collision');
       return;
     }
     if (cell && cell.type === 'mud') {
@@ -453,12 +453,13 @@ const Executor = (() => {
   }
 
   // ── Error handling ────────────────────────────────────────────────────────
-  function _handleError(message) {
+  // type: 'collision' → injury+ambulance; anything else → soft fail (flash+shake)
+  function _handleError(message, type) {
     _stopped = true;
     GameState.mutations.setExecutionRunning(false);
 
     if (window.RUGBY.gameScene) {
-      window.RUGBY.gameScene.api.shakeError();
+      window.RUGBY.gameScene.api.shakeError(type);
     }
 
     setTimeout(() => {
