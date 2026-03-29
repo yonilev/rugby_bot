@@ -20,7 +20,7 @@ class GameScene extends Phaser.Scene {
       loadLevel:        (def) => this._loadLevel(def),
       moveFinnTo:       (col, row, dir, onDone) => this._moveFinnTo(col, row, dir, onDone),
       turnFinn:         (dir, onDone) => this._turnFinn(dir, onDone),
-      shakeError:       () => this._shakeError(),
+      shakeError:       (type) => this._shakeError(type),
       flashCell:        (col, row, color) => this._flashCell(col, row, color),
       collectWaypoint:  (col, row) => this._collectWaypoint(col, row),
       highlightTryLine: () => this._highlightTryLine(),
@@ -504,8 +504,40 @@ class GameScene extends Phaser.Scene {
     });
   }
 
-  _shakeError() {
-    this._injuryAmbulance();
+  _shakeError(type) {
+    if (type === 'collision') {
+      this._injuryAmbulance();
+    } else {
+      this._softFail();
+    }
+  }
+
+  // ── Soft-fail sequence (out of bounds / wrong action) ─────────────────────
+  // Red flash over the screen + camera shake + referee whistle.
+  _softFail() {
+    const W = this.scale.width;
+    const H = this.scale.height;
+
+    // Red screen flash
+    const flash = this.add.graphics();
+    flash.fillStyle(0xFF0000, 0.45);
+    flash.fillRect(0, 0, W, H);
+    flash.setDepth(20);
+    this._injuryObjs.push(flash);
+
+    this.tweens.add({
+      targets: flash,
+      alpha: 0,
+      duration: 500,
+      ease: 'Power2',
+      onComplete: () => flash.destroy(),
+    });
+
+    // Camera shake
+    this.cameras.main.shake(320, 0.012);
+
+    // Whistle sound
+    if (window.RUGBY.audio) window.RUGBY.audio.playWhistle();
   }
 
   // ── Injury + ambulance sequence ───────────────────────────────────────────

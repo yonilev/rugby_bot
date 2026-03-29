@@ -76,6 +76,16 @@ const Executor = (() => {
   function executeNode(node, onDone) {
     if (_stopped) return;
 
+    // If Finn is standing on a defender, only tackle is allowed
+    if (node.type !== 'tackle') {
+      const { finn } = GameState.current;
+      const standingOn = _getCellAt(finn.col, finn.row);
+      if (standingOn && standingOn.type === 'opponent-player') {
+        _handleError('Tackled! Use Tackle when you land on a defender. 💪', 'collision');
+        return;
+      }
+    }
+
     switch (node.type) {
       case 'move-forward':
         _doMove('forward', onDone);
@@ -260,10 +270,10 @@ const Executor = (() => {
 
       case 'tackle': {
         const { finn } = GameState.current;
-        const currentCell = _getCellAt(finn.col, finn.row);
+        const cellHere = _getCellAt(finn.col, finn.row);
 
-        if (!currentCell || currentCell.type !== 'opponent-player') {
-          _handleError('No opponent here! Move onto a defender first. 💪');
+        if (!cellHere || cellHere.type !== 'opponent-player') {
+          _handleError('No opponent here! Move Finn onto a defender first. 💪');
           return;
         }
 
@@ -291,6 +301,14 @@ const Executor = (() => {
     if (_stopped) return;
 
     const { finn, levelDef } = GameState.current;
+
+    // Sprint's second step: if Finn landed on a defender mid-sprint, injure him
+    const standingOn = _getCellAt(finn.col, finn.row);
+    if (standingOn && standingOn.type === 'opponent-player') {
+      _handleError('Tackled! Use Tackle when you land on a defender. 💪', 'collision');
+      return;
+    }
+
     const { col, row, dir } = finn;
     const newPos = direction === 'forward'
       ? Utils.moveForward(col, row, dir)
@@ -306,7 +324,7 @@ const Executor = (() => {
     // opponent-player cells are passable — step on them, then use Tackle to clear
     const cell = _getCellAt(newPos.col, newPos.row);
     if (cell && cell.type === 'obstacle') {
-      _handleError('Tackled by an opponent! 🏉');
+      _handleError('Tackled by an opponent! 🏉', 'collision');
       return;
     }
     if (cell && cell.type === 'mud') {
@@ -467,12 +485,13 @@ const Executor = (() => {
   }
 
   // ── Error handling ────────────────────────────────────────────────────────
-  function _handleError(message) {
+  // type: 'collision' → injury+ambulance; anything else → soft fail (flash+shake)
+  function _handleError(message, type) {
     _stopped = true;
     GameState.mutations.setExecutionRunning(false);
 
     if (window.RUGBY.gameScene) {
-      window.RUGBY.gameScene.api.shakeError();
+      window.RUGBY.gameScene.api.shakeError(type);
     }
 
     setTimeout(() => {
