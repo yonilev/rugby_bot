@@ -96,6 +96,15 @@
   font-size: 0.78rem;
   border-radius: 20px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  cursor: grab;
+}
+
+.block.in-sequence:active {
+  cursor: grabbing;
+}
+
+.block-wrapper.dragging {
+  opacity: 0.4;
 }
 
 /* Movement blocks */

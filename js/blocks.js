@@ -79,6 +79,22 @@ const BlockSystem = (() => {
   let _palette  = null;
   let _tray     = null;
   let _stepIndicator = null;
+  let _dropIndicator = null;
+
+  function _clearDropIndicator() {
+    if (_dropIndicator && _dropIndicator.parentNode) {
+      _dropIndicator.parentNode.removeChild(_dropIndicator);
+    }
+  }
+
+  function _dropIndexFromIndicator() {
+    if (!_dropIndicator || _dropIndicator.parentNode !== _tray) {
+      return _tray.querySelectorAll(':scope > .block-wrapper').length;
+    }
+    const siblings = Array.from(_tray.children);
+    const pos = siblings.indexOf(_dropIndicator);
+    return siblings.slice(0, pos).filter(el => el.classList.contains('block-wrapper')).length;
+  }
 
   // ── Init ──────────────────────────────────────────────────────────────────
   function init() {
@@ -86,9 +102,39 @@ const BlockSystem = (() => {
     _tray          = document.getElementById('sequence-tray');
     _stepIndicator = document.getElementById('step-indicator');
 
+    _dropIndicator = document.createElement('div');
+    _dropIndicator.className = 'drop-indicator';
+
     // Re-render tray whenever sequence changes
     document.addEventListener('rugby:statechange', (e) => {
       if (e.detail.changed === 'sequence') renderTray();
+    });
+
+    // Tray-level drag handlers (registered once — not per render)
+    _tray.addEventListener('dragover', e => {
+      e.preventDefault();
+      _tray.appendChild(_dropIndicator);
+    });
+
+    _tray.addEventListener('dragleave', e => {
+      if (!_tray.contains(e.relatedTarget)) _clearDropIndicator();
+    });
+
+    _tray.addEventListener('drop', e => {
+      e.preventDefault();
+      const dropIndex  = _dropIndexFromIndicator();
+      const source    = e.dataTransfer.getData('source');
+      const nodeId    = e.dataTransfer.getData('nodeId');
+      const blockType = e.dataTransfer.getData('blockType');
+      _clearDropIndicator();
+
+      if (source === 'tray' && nodeId) {
+        GameState.mutations.moveCommand(nodeId, dropIndex);
+      } else if (source === 'palette' && blockType) {
+        const node = _makeCommandNode(blockType);
+        GameState.mutations.addCommand(node, dropIndex);
+        AudioEngine.playBlockPlace();
+      }
     });
   }
 
@@ -130,7 +176,6 @@ const BlockSystem = (() => {
     });
 
     _updateStepIndicator(seq.length);
-    _setupTrayDrop();
   }
 
   function _updateStepIndicator(count) {
@@ -209,7 +254,26 @@ const BlockSystem = (() => {
       e.dataTransfer.setData('nodeId', node.id);
       e.dataTransfer.setData('source', 'tray');
       e.stopPropagation();
+      if (depth === 0) wrapper.classList.add('dragging');
     });
+    blockEl.addEventListener('dragend', () => {
+      wrapper.classList.remove('dragging');
+      _clearDropIndicator();
+    });
+
+    // Drop-indicator positioning for top-level reordering
+    if (depth === 0) {
+      wrapper.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const rect = wrapper.getBoundingClientRect();
+        if (e.clientY < rect.top + rect.height / 2) {
+          _tray.insertBefore(_dropIndicator, wrapper);
+        } else {
+          _tray.insertBefore(_dropIndicator, wrapper.nextSibling);
+        }
+      });
+    }
 
     return wrapper;
   }
@@ -345,27 +409,6 @@ const BlockSystem = (() => {
       }
       _tray.scrollTop = _tray.scrollHeight;
     }, 10);
-  }
-
-  // ── Tray drop (reorder) ──────────────────────────────────────────────────
-  function _setupTrayDrop() {
-    _tray.addEventListener('dragover', e => {
-      e.preventDefault();
-    });
-
-    _tray.addEventListener('drop', e => {
-      e.preventDefault();
-      const blockType = e.dataTransfer.getData('blockType');
-      const source    = e.dataTransfer.getData('source');
-
-      if (source === 'palette' && blockType) {
-        // Add to end
-        const node = _makeCommandNode(blockType);
-        GameState.mutations.addCommand(node);
-        AudioEngine.playBlockPlace();
-      }
-      // Tray reordering not implemented to keep the UX simple for kids
-    });
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
