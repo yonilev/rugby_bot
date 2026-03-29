@@ -260,19 +260,18 @@ const Executor = (() => {
 
       case 'tackle': {
         const { finn } = GameState.current;
-        const ahead = Utils.moveForward(finn.col, finn.row, finn.dir);
-        const cellAhead = _getCellAt(ahead.col, ahead.row);
+        const currentCell = _getCellAt(finn.col, finn.row);
 
-        if (!cellAhead || cellAhead.type !== 'opponent-player') {
-          _handleError('No opponent to tackle! Move next to a player first. 💪');
+        if (!currentCell || currentCell.type !== 'opponent-player') {
+          _handleError('No opponent here! Move onto a defender first. 💪');
           return;
         }
 
-        GameState.mutations.markCellCleared(ahead.col, ahead.row);
+        GameState.mutations.markCellCleared(finn.col, finn.row);
         AudioEngine.playTackle();
 
         if (window.RUGBY.gameScene) {
-          window.RUGBY.gameScene.api.tackleOpponent(ahead.col, ahead.row, () => {
+          window.RUGBY.gameScene.api.tackleOpponent(finn.col, finn.row, () => {
             if (_stopped) return;
             onDone();
           });
@@ -303,9 +302,10 @@ const Executor = (() => {
       return;
     }
 
-    // Check obstacles, opponents, mud, and hurdles (hurdles need jump to clear)
+    // Check obstacles, mud, and hurdles (hurdles need jump to clear)
+    // opponent-player cells are passable — step on them, then use Tackle to clear
     const cell = _getCellAt(newPos.col, newPos.row);
-    if (cell && (cell.type === 'obstacle' || cell.type === 'opponent-player')) {
+    if (cell && cell.type === 'obstacle') {
       _handleError('Tackled by an opponent! 🏉');
       return;
     }
