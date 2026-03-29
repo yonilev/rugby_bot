@@ -21,6 +21,8 @@ const ScreenManager = (() => {
   function showGame()        { showScreen('game'); }
 
   // ── Level select rendering ────────────────────────────────────────────────
+  const _debugMode = new URLSearchParams(window.location.search).has('debug');
+
   function renderLevelSelect() {
     const body = document.getElementById('level-select-body');
     if (!body) return;
@@ -48,9 +50,14 @@ const ScreenManager = (() => {
       const row = document.createElement('div');
       row.className = 'level-cards-row';
 
+      const groupUnlocked = _debugMode || isGroupUnlocked(group.id, completed);
+
       group.levels.forEach((level, levelIdx) => {
         const isCompleted = completed.includes(level.id);
-        const isLocked = false;
+        const isLocked = !_debugMode && (
+          !groupUnlocked ||
+          (levelIdx > 0 && !completed.includes(group.levels[levelIdx - 1].id))
+        );
         const stars = GameState.session.levelStars[level.id] || 0;
 
         const card = document.createElement('div');
