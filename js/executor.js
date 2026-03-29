@@ -22,6 +22,16 @@ const Executor = (() => {
       return;
     }
 
+    // Check requiredBlocks constraint
+    if (levelDef && levelDef.requiredBlocks) {
+      const missing = levelDef.requiredBlocks.filter(type => !_seqContains(seq, type));
+      if (missing.length > 0) {
+        const label = missing.map(t => COMMAND_REGISTRY[t]?.label || t).join(', ');
+        BlockSystem.showGameMessage(`You must use the ${label} block! 💡`, 'error');
+        return;
+      }
+    }
+
     AudioEngine.ensure();
     AudioEngine.playRunStart();
 
@@ -486,6 +496,16 @@ const Executor = (() => {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
+  function _seqContains(nodes, type) {
+    return nodes.some(node => {
+      if (node.type === type) return true;
+      if (node.then && _seqContains(node.then, type)) return true;
+      if (node.else && _seqContains(node.else, type)) return true;
+      if (node.body && _seqContains(node.body, type)) return true;
+      return false;
+    });
+  }
+
   function _getCellAt(col, row) {
     const cells = GameState.current.levelDef.cells || [];
     const cleared = GameState.current.clearedCells || [];

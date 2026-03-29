@@ -18,6 +18,7 @@
 //                                          waypoints:[{col,row}], target:{col,row} }
 //     type 'pass-to-teammate':            { type:'pass-to-teammate', teammate:{col,row} }
 //   maxCommands: number | null,
+//   requiredBlocks: string[] | null,   block types the player MUST include to run
 //   hint: string,
 // }
 
@@ -153,6 +154,7 @@ const GROUPS = [
         availableCommands: ['move-forward', 'turn-left', 'turn-right', 'if-condition', 'score-try'],
         winCondition: { type: 'reach', target: { col: 6, row: 2 } },
         maxCommands: null,
+        requiredBlocks: ['if-condition'],
         hint: 'Use IF obstacle-ahead: THEN turn left. Move forward to get around, then Score Try!',
       },
       {
@@ -170,6 +172,7 @@ const GROUPS = [
         availableCommands: ['move-forward', 'turn-left', 'turn-right', 'if-condition', 'score-try'],
         winCondition: { type: 'reach', target: { col: 8, row: 3 } },
         maxCommands: null,
+        requiredBlocks: ['if-condition'],
         hint: 'Check if the path ahead is clear. If blocked, go around the top! Then Score Try.',
       },
       {
@@ -186,6 +189,7 @@ const GROUPS = [
         availableCommands: ['move-forward', 'turn-left', 'turn-right', 'if-condition', 'score-try'],
         winCondition: { type: 'reach', target: { col: 6, row: 1 } },
         maxCommands: null,
+        requiredBlocks: ['if-condition'],
         hint: 'Move forward once. Use IF: if mud ahead → Turn Left, Forward, Turn Right. Then keep going and Score Try!',
       },
       {
@@ -203,6 +207,7 @@ const GROUPS = [
         availableCommands: ['move-forward', 'turn-left', 'turn-right', 'if-condition', 'score-try'],
         winCondition: { type: 'reach', target: { col: 10, row: 3 } },
         maxCommands: null,
+        requiredBlocks: ['if-condition'],
         hint: 'Use multiple IF blocks to dodge each defender in turn, then Score Try.',
       },
       {
@@ -220,6 +225,7 @@ const GROUPS = [
         availableCommands: ['move-forward', 'turn-left', 'turn-right', 'if-condition', 'score-try'],
         winCondition: { type: 'reach', target: { col: 8, row: 0 } },
         maxCommands: null,
+        requiredBlocks: ['if-condition'],
         hint: "Use IF to dodge each defender — you'll need two IF blocks this time! Then Score Try.",
       },
       {
@@ -241,6 +247,7 @@ const GROUPS = [
           target: { col: 7, row: 1 },
         },
         maxCommands: null,
+        requiredBlocks: ['if-condition'],
         hint: 'Move forward to the ball, Pick Up Ball!, then use IF to dodge the defender, then Score Try!',
       },
     ],
