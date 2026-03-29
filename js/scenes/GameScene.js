@@ -74,7 +74,7 @@ class GameScene extends Phaser.Scene {
 
     this._drawPitch(cols, rows);
     this._drawCrowd(cols, rows);
-    this._drawCells(def.cells);
+    this._drawCells(GameState.current.activeCells || def.cells);
     this._placeFinn(def.finn.startCol, def.finn.startRow, def.finn.startDir);
   }
 
@@ -792,7 +792,7 @@ class GameScene extends Phaser.Scene {
     Object.values(this._waypointGlow).forEach(o => o.destroy());
     this._cellObjs = {};
     this._waypointGlow = {};
-    this._drawCells(this._levelDef.cells);
+    this._drawCells(GameState.current.activeCells || this._levelDef.cells);
 
     const { startCol, startRow, startDir } = this._levelDef.finn;
     if (this._finnSprite) this._finnSprite.destroy();

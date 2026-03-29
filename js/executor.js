@@ -507,7 +507,7 @@ const Executor = (() => {
   }
 
   function _getCellAt(col, row) {
-    const cells = GameState.current.levelDef.cells || [];
+    const cells = GameState.current.activeCells || GameState.current.levelDef.cells || [];
     const cleared = GameState.current.clearedCells || [];
     if (cleared.some(cc => cc.col === col && cc.row === row)) return null;
     return cells.find(c => c.col === col && c.row === row) || null;

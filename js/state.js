@@ -33,6 +33,9 @@ const GameState = (() => {
       // Cells cleared by tackle this run
       clearedCells: [],      // [{col,row}]
 
+      // Resolved cells for the current run (base cells + one randomly chosen obstacle)
+      activeCells: [],
+
       // Execution state (managed by executor.js)
       execution: {
         running: false,
@@ -40,6 +43,15 @@ const GameState = (() => {
       },
     },
   };
+
+  // ── Random obstacle resolver ─────────────────────────────────────────────
+  function resolveActiveCells(levelDef) {
+    const base = levelDef.cells || [];
+    const options = levelDef.randomObstacles;
+    if (!options || options.length === 0) return base;
+    const pick = options[Math.floor(Math.random() * options.length)];
+    return [...base, pick];
+  }
 
   // ── Event helper ─────────────────────────────────────────────────────────
   function dispatch(changed, detail = {}) {
@@ -81,6 +93,7 @@ const GameState = (() => {
       state.current.sequence = [];
       state.current.visitedWaypoints = [];
       state.current.clearedCells = [];
+      state.current.activeCells = resolveActiveCells(levelDef);
       state.current.execution = { running: false, stopped: false };
       dispatch('level', { levelDef });
     },
@@ -156,6 +169,7 @@ const GameState = (() => {
       };
       state.current.visitedWaypoints = [];
       state.current.clearedCells = [];
+      state.current.activeCells = resolveActiveCells(def);
       state.current.execution = { running: false, stopped: false };
       dispatch('finn');
     },
