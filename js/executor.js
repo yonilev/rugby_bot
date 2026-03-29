@@ -302,7 +302,7 @@ const Executor = (() => {
 
     const { finn, levelDef } = GameState.current;
 
-    // Sprint's second step: if Finn landed on a defender mid-sprint, injure him
+    // If Finn is already on a defender (e.g. mid-sprint), moving further injures him
     const standingOn = _getCellAt(finn.col, finn.row);
     if (standingOn && standingOn.type === 'opponent-player') {
       _handleError('Tackled! Use Tackle when you land on a defender. 💪', 'collision');

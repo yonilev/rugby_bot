@@ -60,7 +60,7 @@ const BlockSystem = (() => {
     },
     'tackle': {
       label: 'Tackle!', icon: '💪', category: 'action',
-      description: 'Tackle the opponent directly ahead to clear the path',
+      description: 'Tackle the opponent you are standing on to clear the path',
     },
     'pickup-ball': {
       label: 'Pick Up Ball!', icon: '🏉', category: 'action',
