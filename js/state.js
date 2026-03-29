@@ -122,6 +122,15 @@ const GameState = (() => {
       dispatch('sequence');
     },
 
+    moveCommand(nodeId, toIndex) {
+      const seq = state.current.sequence;
+      const fromIndex = seq.findIndex(n => n.id === nodeId);
+      if (fromIndex === -1) return;
+      const [node] = seq.splice(fromIndex, 1);
+      seq.splice(toIndex > fromIndex ? toIndex - 1 : toIndex, 0, node);
+      dispatch('sequence');
+    },
+
     setParam(commandId, value) {
       const node = findNodeById(state.current.sequence, commandId);
       if (node) node.param = value;
