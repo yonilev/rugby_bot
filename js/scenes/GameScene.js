@@ -13,6 +13,7 @@ class GameScene extends Phaser.Scene {
     this._gridGfx    = null;
     this._postGfx    = null;   // goal posts graphics (separate layer for flashing)
     this._crowdGfx   = null;   // crowd stands around the pitch
+    this._injuryObjs = [];     // objects created by injury animation (cleaned on level reload)
 
     // Public API for executor.js and screens.js
     this.api = {
@@ -53,8 +54,10 @@ class GameScene extends Phaser.Scene {
     if (this._finnSprite) this._finnSprite.destroy();
     Object.values(this._cellObjs).forEach(o => o.destroy());
     Object.values(this._waypointGlow).forEach(o => o.destroy());
+    this._injuryObjs.forEach(o => { if (o && o.active) o.destroy(); });
     this._cellObjs = {};
     this._waypointGlow = {};
+    this._injuryObjs = [];
 
     const { cols, rows } = def.grid;
     const W = this.scale.width;
@@ -502,31 +505,226 @@ class GameScene extends Phaser.Scene {
   }
 
   _shakeError() {
-    if (!this._finnSprite) return;
-    AudioEngine.playBump();
+    this._injuryAmbulance();
+  }
 
-    const origX = this._finnSprite.x;
+  // ── Injury + ambulance sequence ───────────────────────────────────────────
+  // Finn collapses, dizzy stars orbit, ambulance drives in, loads Finn, drives off.
+  _injuryAmbulance() {
+    if (!this._finnSprite) return;
+
+    const finn  = this._finnSprite;
+    const cs    = this._cellSize;
+    const W     = this.scale.width;
+
+    // ── Phase 1: Finn collapses ──────────────────────────────────────────
+    AudioEngine.playBump();
+    finn.anims.stop();
+
+    const origAngle  = finn.angle;
+    const origScaleY = finn.scaleY;
     this.tweens.add({
-      targets: this._finnSprite,
-      x: origX + 12,
-      duration: 50,
-      yoyo: true,
-      repeat: 4,
-      ease: 'Power2',
-      onComplete: () => { this._finnSprite.x = origX; },
+      targets: finn,
+      angle:  origAngle + 90,
+      scaleY: origScaleY * 0.55,
+      y:      finn.y + cs * 0.28,
+      duration: 290,
+      ease: 'Bounce.out',
     });
 
-    const cs = this._cellSize;
-    const flash = this.add.graphics();
-    flash.fillStyle(0xFF4444, 0.4);
-    flash.fillCircle(this._finnSprite.x, this._finnSprite.y, cs / 2);
-    flash.setDepth(9);
+    // Red impact flash
+    const flash = this.add.graphics().setDepth(9);
+    flash.fillStyle(0xFF3333, 0.5);
+    flash.fillCircle(finn.x, finn.y, cs * 0.58);
+    this._injuryObjs.push(flash);
     this.tweens.add({
       targets: flash,
       alpha: 0,
-      duration: 400,
-      onComplete: () => flash.destroy(),
+      duration: 380,
+      onComplete: () => { if (flash.active) flash.destroy(); },
     });
+
+    // ── Dizzy orbit dots (yellow ★, red ●, cyan ●) ───────────────────────
+    const dotColors = [0xFFD700, 0xFF5050, 0x40DDFF];
+    const orbitDots = dotColors.map((color) => {
+      const g = this.add.graphics().setDepth(16);
+      g.fillStyle(color, 1);
+      // Simple 5-point star shape
+      g.fillCircle(0, 0, 5);
+      g.fillTriangle(-5, -1, 0, -11, 5, -1);
+      g.fillTriangle(-6, 5, 0, -3, 6, 5);
+      this._injuryObjs.push(g);
+      return g;
+    });
+
+    let orbitT = 0;
+    const orbitEvent = this.time.addEvent({
+      delay: 16,
+      repeat: 175, // ~2.8 s
+      callback: () => {
+        if (!finn.active) return;
+        orbitT += 0.13;
+        orbitDots.forEach((dot, i) => {
+          if (!dot.active) return;
+          const a = orbitT + i * 2.094; // 120° apart
+          dot.x = finn.x + Math.cos(a) * cs * 0.42;
+          dot.y = finn.y - cs * 0.05 + Math.sin(a) * cs * 0.2;
+        });
+      },
+      callbackScope: this,
+    });
+
+    // ── Phase 2: Ambulance drives in from the right (after 300 ms) ───────
+    this.time.delayedCall(300, () => {
+      if (!finn.active) return;
+      AudioEngine.playAmbulanceSiren();
+
+      const ambW       = cs * 2.6;
+      const ambH       = cs * 0.95;
+      const ambCY      = finn.y;
+      // Ambulance parks with its centre 1.4 cells right of Finn; left edge nearly touches Finn
+      const ambTargetX = finn.x + cs * 1.4;
+
+      const ambGfx = this.add.graphics().setDepth(12);
+      this._injuryObjs.push(ambGfx);
+
+      let sirenOn = false;
+      const redrawAmb = () => {
+        ambGfx.clear();
+        this._drawAmbulanceOn(ambGfx, ambW, ambH, sirenOn);
+      };
+
+      ambGfx.x = W + ambW;
+      ambGfx.y = ambCY;
+      redrawAmb();
+
+      // Blinking siren lights (just redraws the whole ambulance graphic)
+      const sirenEvent = this.time.addEvent({
+        delay: 140,
+        repeat: -1,
+        callback: () => { if (ambGfx.active) { sirenOn = !sirenOn; redrawAmb(); } },
+        callbackScope: this,
+      });
+
+      // Drive in
+      this.tweens.add({
+        targets: ambGfx,
+        x: ambTargetX,
+        duration: 820,
+        ease: 'Power2.out',
+        onComplete: () => {
+          if (!finn.active) return;
+
+          // ── Phase 3: Stretcher out + Finn loaded (200 ms pause) ──
+          this.time.delayedCall(200, () => {
+            if (!finn.active) return;
+
+            const strGfx = this.add.graphics().setDepth(9);
+            this._injuryObjs.push(strGfx);
+            // Stretcher sits in the gap between Finn's original position and the ambulance
+            const strCX = finn.x + cs * 0.55;
+            const strCY = ambCY;
+            strGfx.fillStyle(0xEECC88, 1);
+            strGfx.fillRoundedRect(strCX - cs * 0.52, strCY - cs * 0.1, cs * 1.04, cs * 0.2, 4);
+            strGfx.fillStyle(0x888888, 1);
+            strGfx.fillRect(strCX - cs * 0.42, strCY + cs * 0.1, 5, cs * 0.28);
+            strGfx.fillRect(strCX + cs * 0.38, strCY + cs * 0.1, 5, cs * 0.28);
+
+            this.tweens.add({
+              targets: finn,
+              x: strCX,
+              y: strCY - cs * 0.04,
+              duration: 300,
+              ease: 'Power1.inOut',
+              onComplete: () => {
+                if (!finn.active) return;
+
+                // ── Phase 4: Ambulance + Finn drive off left ───────
+                this.time.delayedCall(220, () => {
+                  if (!finn.active) return;
+
+                  const startAmbX = ambGfx.x;
+                  const exitX     = -W - ambW * 1.2;
+
+                  this.tweens.add({
+                    targets: ambGfx,
+                    x: exitX,
+                    duration: 950,
+                    ease: 'Power2.in',
+                    onUpdate: () => {
+                      if (!finn.active || !strGfx.active) return;
+                      const dx = ambGfx.x - startAmbX;
+                      finn.x   = strCX + dx;
+                      strGfx.x = dx;
+                    },
+                    onComplete: () => {
+                      sirenEvent.destroy();
+                      orbitEvent.destroy();
+                      orbitDots.forEach(d => { if (d.active) d.destroy(); });
+                      if (finn.active) finn.setVisible(false);
+                    },
+                  });
+                });
+              },
+            });
+          });
+        },
+      });
+    });
+  }
+
+  // Draws a left-facing side-view ambulance centred at local (0, 0).
+  // sirenOn toggles between orange-left / blue-right and blue-left / orange-right.
+  _drawAmbulanceOn(g, ambW, ambH, sirenOn) {
+    // Body (white)
+    g.fillStyle(0xFFFFFF, 1);
+    g.fillRoundedRect(-ambW * 0.5, -ambH * 0.38, ambW, ambH * 0.76, 10);
+
+    // Cab section (front / left end)
+    g.fillStyle(0xE0E0E0, 1);
+    g.fillRoundedRect(-ambW * 0.5, -ambH * 0.68, ambW * 0.3, ambH * 0.32, 7);
+
+    // Windshield
+    g.fillStyle(0x88BBFF, 0.85);
+    g.fillRoundedRect(-ambW * 0.47, -ambH * 0.64, ambW * 0.2, ambH * 0.24, 4);
+
+    // Red side stripe
+    g.fillStyle(0xDD1111, 1);
+    g.fillRect(-ambW * 0.5, -ambH * 0.06, ambW, ambH * 0.12);
+
+    // Red cross on patient bay (right side)
+    const cx = ambW * 0.18;
+    const cy = -ambH * 0.1;
+    g.fillStyle(0xFF0000, 1);
+    g.fillRect(cx - 10, cy - 3,  20, 7);   // horizontal bar
+    g.fillRect(cx - 3,  cy - 10, 7,  20);  // vertical bar
+
+    // "AMBULANCE" label area (tinted band for readability)
+    g.fillStyle(0xEEEEEE, 0.5);
+    g.fillRect(-ambW * 0.18, -ambH * 0.36, ambW * 0.65, ambH * 0.16);
+
+    // Rear doors hint (right end)
+    g.lineStyle(2, 0xCCCCCC, 1);
+    g.strokeRect(ambW * 0.31, -ambH * 0.36, ambW * 0.18, ambH * 0.74);
+    g.lineBetween(ambW * 0.4, -ambH * 0.36, ambW * 0.4, ambH * 0.38);
+
+    // Ground shadow
+    g.fillStyle(0x000000, 0.14);
+    g.fillEllipse(0, ambH * 0.52, ambW * 0.88, ambH * 0.16);
+
+    // Wheels
+    g.fillStyle(0x111111, 1);
+    g.fillCircle(-ambW * 0.3, ambH * 0.38, ambH * 0.22);
+    g.fillCircle( ambW * 0.26, ambH * 0.38, ambH * 0.22);
+    g.fillStyle(0x555555, 1);
+    g.fillCircle(-ambW * 0.3, ambH * 0.38, ambH * 0.1);
+    g.fillCircle( ambW * 0.26, ambH * 0.38, ambH * 0.1);
+
+    // Blinking siren lights on roof
+    g.fillStyle(sirenOn ? 0xFF4400 : 0x552200, 1);
+    g.fillRoundedRect(-ambW * 0.10, -ambH * 0.74, ambW * 0.09, ambH * 0.17, 3);
+    g.fillStyle(sirenOn ? 0x223399 : 0x0055FF, 1);
+    g.fillRoundedRect(ambW * 0.04,  -ambH * 0.74, ambW * 0.09, ambH * 0.17, 3);
   }
 
   _flashCell(col, row, colorHex) {
@@ -583,7 +781,11 @@ class GameScene extends Phaser.Scene {
   }
 
   _resetToStart() {
-    if (!this._levelDef || !this._finnSprite) return;
+    if (!this._levelDef) return;
+
+    // Clean up any injury animation objects still on screen
+    this._injuryObjs.forEach(o => { if (o && o.active) o.destroy(); });
+    this._injuryObjs = [];
 
     // Rebuild cell objects in case any were destroyed (e.g. tackled opponents)
     Object.values(this._cellObjs).forEach(o => o.destroy());
@@ -593,13 +795,8 @@ class GameScene extends Phaser.Scene {
     this._drawCells(this._levelDef.cells);
 
     const { startCol, startRow, startDir } = this._levelDef.finn;
-    const { px, py } = this._cellPixel(startCol, startRow);
-    const cs = this._cellSize;
-    this._finnSprite.setPosition(px + cs/2, py + cs/2);
-    this._finnSprite.setDepth(10);
-    this._applyFinnDirection(startDir);
-    this._finnSprite.setFrame(0);
-    this._finnSprite.stop();
+    if (this._finnSprite) this._finnSprite.destroy();
+    this._placeFinn(startCol, startRow, startDir);
   }
 
   // ── Goal kick animation ───────────────────────────────────────────────────

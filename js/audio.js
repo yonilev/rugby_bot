@@ -216,6 +216,41 @@ const AudioEngine = (() => {
     } catch (e) {}
   }
 
+  // Ambulance siren — warbling two-tone wail
+  function playAmbulanceSiren() {
+    try {
+      ensure();
+      const t = ctx.currentTime;
+      const duration = 2.8;
+
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.28, t + 0.15);
+      g.gain.setValueAtTime(0.28, t + duration - 0.3);
+      g.gain.exponentialRampToValueAtTime(0.001, t + duration);
+      g.connect(ctx.destination);
+
+      const carrier = ctx.createOscillator();
+      carrier.type = 'sawtooth';
+      carrier.frequency.setValueAtTime(880, t);
+
+      // LFO creates the wailing siren sweep (±220 Hz at 2.8 Hz)
+      const lfo = ctx.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.setValueAtTime(2.8, t);
+
+      const lfoAmt = ctx.createGain();
+      lfoAmt.gain.setValueAtTime(220, t);
+
+      lfo.connect(lfoAmt);
+      lfoAmt.connect(carrier.frequency);
+      carrier.connect(g);
+
+      lfo.start(t); lfo.stop(t + duration);
+      carrier.start(t); carrier.stop(t + duration);
+    } catch (e) {}
+  }
+
   // Ball pickup — ascending swoop + soft thud
   function playPickupBall() {
     try {
@@ -263,5 +298,6 @@ const AudioEngine = (() => {
     playTackle,
     playScoreTry,
     playPickupBall,
+    playAmbulanceSiren,
   };
 })();
